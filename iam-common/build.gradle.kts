@@ -6,5 +6,6 @@ plugins {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
