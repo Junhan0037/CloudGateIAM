@@ -1,0 +1,92 @@
+version: "3.9"
+name: cloudgateiam
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: cloudgate-mysql
+    command: >-
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-cloudgate_iam}
+      MYSQL_USER: ${MYSQL_USER:-cloudgate}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-cloudgate-pass}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - cloudgate-net
+
+  redis:
+    image: redis:7
+    container_name: cloudgate-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - cloudgate-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: cloudgate-kafka
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    environment:
+      # KRaft 컨트롤러+브로커 단일 노드 구성
+      KAFKA_NODE_ID: 1
+      # 고정된 클러스터 ID (KRaft 필수, base64-encoded UUID 16바이트)
+      KAFKA_CLUSTER_ID: cjBHQTBUTU5YQk1GRjgxQg==
+      CLUSTER_ID: cjBHQTBUTU5YQk1GRjgxQg==
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      # 리스너 설정: 내부/외부/컨트롤러 분리
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:${KAFKA_PORT:-9092},CONTROLLER://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:${KAFKA_PORT:-9092}
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      # 단일 브로커 기본값
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_MESSAGE_MAX_BYTES: 2000000
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    healthcheck:
+      test: ["CMD", "bash", "-c", "/usr/bin/kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - cloudgate-net
+
+volumes:
+  mysql_data:
+  redis_data:
+  kafka_data:
+
+networks:
+  cloudgate-net:
+    driver: bridge
