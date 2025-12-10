@@ -14,9 +14,7 @@ spring:
         format_sql: true
     open-in-view: false
   session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
+    store-type: none
   h2:
     console:
       enabled: false

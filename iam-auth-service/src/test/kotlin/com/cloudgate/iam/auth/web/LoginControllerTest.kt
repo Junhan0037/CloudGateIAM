@@ -14,17 +14,22 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Instant
 
-@SpringBootTest(classes = [AuthApplication::class])
+@SpringBootTest(
+    classes = [AuthApplication::class],
+    properties = ["spring.session.store-type=none"]
+)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class LoginControllerTest @Autowired constructor(
@@ -149,5 +154,51 @@ class LoginControllerTest @Autowired constructor(
         )
             .andExpect(status().isForbidden)
             .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"))
+    }
+
+    @Test
+    fun `로그아웃 시 세션이 무효화된다`() {
+        val payload = mapOf(
+            "tenantId" to activeTenant.id,
+            "username" to activeUser.username,
+            "password" to "P@ssw0rd!"
+        )
+
+        val loginResult = mockMvc.perform(
+            post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+        )
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val sessionId = objectMapper.readTree(loginResult.response.contentAsByteArray)["sessionId"].asText()
+        val sessionCookie = loginResult.response.getCookie("CGIAMSESSION")
+
+        assertThat(sessionId).isNotBlank
+        assertThat(sessionCookie).isNotNull
+
+        mockMvc.perform(
+            get("/auth/me")
+                .cookie(sessionCookie!!)
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.username").value(activeUser.username))
+
+        val logoutResult = mockMvc.perform(
+            post("/auth/logout")
+                .cookie(sessionCookie)
+        )
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val expiredCookie = logoutResult.response.getCookie("CGIAMSESSION")
+        assertThat(expiredCookie).isNotNull
+        assertThat(expiredCookie!!.maxAge).isZero
+
+        val meResult = mockMvc.perform(get("/auth/me"))
+            .andReturn()
+
+        assertThat(meResult.response.status).isEqualTo(HttpStatus.UNAUTHORIZED.value())
     }
 }

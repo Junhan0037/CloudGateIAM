@@ -8,7 +8,6 @@ import com.cloudgate.iam.common.domain.UserAccountStatus
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.DisabledException
 import org.springframework.security.authentication.LockedException
-import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -46,7 +45,7 @@ class CredentialAuthenticationService(
             usernameValue = account.username,
             mfaEnabled = account.mfaEnabled,
             status = account.status,
-            grantedAuthorities = listOf(SimpleGrantedAuthority("ROLE_USER"))
+            roles = listOf("ROLE_USER")
         )
     }
 

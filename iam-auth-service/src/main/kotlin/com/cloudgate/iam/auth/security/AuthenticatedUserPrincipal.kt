@@ -1,22 +1,31 @@
 package com.cloudgate.iam.auth.security
 
 import com.cloudgate.iam.common.domain.UserAccountStatus
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 
 /**
  * 세션에 저장되는 인증 사용자 정보로, 향후 RBAC/ABAC 확장 시 속성을 확장
  */
-data class AuthenticatedUserPrincipal(
+data class AuthenticatedUserPrincipal @JsonCreator constructor(
+    @JsonProperty("userId")
     val userId: Long,
+    @JsonProperty("tenantId")
     val tenantId: Long,
+    @JsonProperty("username")
     private val usernameValue: String,
+    @JsonProperty("mfaEnabled")
     val mfaEnabled: Boolean,
+    @JsonProperty("status")
     val status: UserAccountStatus,
-    private val grantedAuthorities: Collection<GrantedAuthority> = emptyList()
+    @JsonProperty("roles")
+    private val roles: List<String>? = emptyList()
 ) : UserDetails {
 
-    override fun getAuthorities(): Collection<GrantedAuthority> = grantedAuthorities
+    override fun getAuthorities(): Collection<GrantedAuthority> =
+        roles.orEmpty().map { UserAuthority(it) }
 
     override fun getPassword(): String? = null
 

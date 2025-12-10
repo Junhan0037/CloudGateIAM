@@ -1,19 +1,25 @@
 package com.cloudgate.iam.auth.config
 
 import com.cloudgate.iam.auth.security.TenantUsernamePasswordAuthenticationProvider
+import com.cloudgate.iam.auth.web.dto.LogoutResponse
+import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.ProviderManager
-import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.core.Authentication
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
 import org.springframework.security.web.context.SecurityContextRepository
+import org.springframework.http.HttpStatus
 
 /**
  * Spring Security 설정으로 세션 기반 인증과 로그인 엔드포인트를 보호한다.
@@ -21,6 +27,13 @@ import org.springframework.security.web.context.SecurityContextRepository
 @Configuration
 @EnableWebSecurity
 class SecurityConfig {
+
+    @Bean
+    fun logoutSuccessHandler(objectMapper: ObjectMapper) = { _: HttpServletRequest, response: HttpServletResponse, _: Authentication? ->
+        response.status = HttpServletResponse.SC_OK
+        response.contentType = "application/json"
+        response.writer.write(objectMapper.writeValueAsString(LogoutResponse()))
+    }
 
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
@@ -38,7 +51,8 @@ class SecurityConfig {
     fun securityFilterChain(
         http: HttpSecurity,
         tenantAuthenticationProvider: TenantUsernamePasswordAuthenticationProvider,
-        securityContextRepository: SecurityContextRepository
+        securityContextRepository: SecurityContextRepository,
+        logoutSuccessHandler: (HttpServletRequest, HttpServletResponse, Authentication?) -> Unit
     ): SecurityFilterChain {
         http
             .csrf { it.disable() }
@@ -51,11 +65,17 @@ class SecurityConfig {
                     .maxSessionsPreventsLogin(false)
             }
             .authorizeHttpRequests {
-                it.requestMatchers("/actuator/health", "/auth/login").permitAll()
+                it.requestMatchers("/actuator/health", "/auth/login", "/auth/logout").permitAll()
                     .anyRequest().authenticated()
             }
-            .securityContext { it.securityContextRepository(securityContextRepository()) }
-            .logout(Customizer.withDefaults())
+            .securityContext { it.securityContextRepository(securityContextRepository) }
+            .exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
+            .logout {
+                it.logoutUrl("/auth/logout")
+                    .deleteCookies("CGIAMSESSION")
+                    .invalidateHttpSession(true)
+                    .logoutSuccessHandler(logoutSuccessHandler)
+            }
 
         return http.build()
     }

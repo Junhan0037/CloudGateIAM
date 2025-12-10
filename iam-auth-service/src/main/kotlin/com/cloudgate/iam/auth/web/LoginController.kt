@@ -4,14 +4,17 @@ import com.cloudgate.iam.auth.security.AuthenticatedUserPrincipal
 import com.cloudgate.iam.auth.security.TenantUsernamePasswordAuthenticationToken
 import com.cloudgate.iam.auth.web.dto.LoginRequest
 import com.cloudgate.iam.auth.web.dto.LoginResponse
+import com.cloudgate.iam.auth.web.dto.SessionInfoResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -65,6 +68,20 @@ class LoginController(
             username = principal.username,
             mfaEnabled = principal.mfaEnabled,
             sessionExpiresInSeconds = session.maxInactiveInterval
+        )
+    }
+
+    /**
+     * 현재 세션의 사용자 정보를 반환한다.
+     */
+    @GetMapping("/me")
+    fun me(authentication: Authentication): SessionInfoResponse {
+        val principal = authentication.principal as AuthenticatedUserPrincipal
+        return SessionInfoResponse(
+            userId = principal.userId,
+            tenantId = principal.tenantId,
+            username = principal.username,
+            mfaEnabled = principal.mfaEnabled
         )
     }
 }
