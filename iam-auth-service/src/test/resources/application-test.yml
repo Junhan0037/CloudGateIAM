@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: iam-auth-service-test
+  datasource:
+    url: jdbc:h2:mem:authdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: always
+  h2:
+    console:
+      enabled: false
+server:
+  servlet:
+    session:
+      cookie:
+        name: CGIAMSESSION

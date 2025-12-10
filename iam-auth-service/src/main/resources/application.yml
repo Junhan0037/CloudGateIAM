@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: iam-auth-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/cloudgate_iam?useSSL=false&characterEncoding=UTF-8&serverTimezone=UTC
+    username: cloudgate
+    password: cloudgate-pass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000
+  session:
+    store-type: redis
+    timeout: 30m
+    redis:
+      namespace: cloudgate:iam:sessions
+      flush-mode: on-save
+server:
+  servlet:
+    session:
+      cookie:
+        name: CGIAMSESSION
+        http-only: true
+        secure: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
