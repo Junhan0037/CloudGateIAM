@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.annotation.Order
+import org.springframework.http.HttpStatus
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -19,13 +21,13 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
 import org.springframework.security.web.context.SecurityContextRepository
-import org.springframework.http.HttpStatus
 
 /**
- * Spring Security 설정으로 세션 기반 인증과 로그인 엔드포인트를 보호한다.
+ * Spring Security 설정으로 세션 기반 인증과 로그인 엔드포인트를 보호
  */
 @Configuration
 @EnableWebSecurity
+@Order(2)
 class SecurityConfig {
 
     @Bean

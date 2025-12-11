@@ -24,6 +24,12 @@ spring:
     redis:
       namespace: cloudgate:iam:sessions
       flush-mode: on-save
+auth:
+  server:
+    issuer: http://localhost:8080
+    client-id: minicloud-console
+    client-secret: minicloud-secret
+    redirect-uri: http://localhost:3000/login/oauth2/code/minicloud
 server:
   servlet:
     session:

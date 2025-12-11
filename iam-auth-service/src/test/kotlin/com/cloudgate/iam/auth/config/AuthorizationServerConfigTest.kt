@@ -1,0 +1,44 @@
+package com.cloudgate.iam.auth.config
+
+import com.cloudgate.iam.auth.AuthApplication
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.MediaType
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+
+@SpringBootTest(classes = [AuthApplication::class])
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class AuthorizationServerConfigTest @Autowired constructor(
+    private val mockMvc: MockMvc
+) {
+
+    @Test
+    fun `OpenID Provider 메타데이터를 조회할 수 있다`() {
+        mockMvc.perform(
+            get("/.well-known/oauth-authorization-server")
+                .accept(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.issuer").value("http://localhost:8080"))
+            .andExpect(jsonPath("$.authorization_endpoint").exists())
+            .andExpect(jsonPath("$.token_endpoint").exists())
+    }
+
+    @Test
+    fun `JWK 세트 엔드포인트가 키를 반환한다`() {
+        mockMvc.perform(
+            get("/oauth2/jwks")
+                .accept(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.keys").isArray)
+            .andExpect(jsonPath("$.keys[0].kty").exists())
+    }
+}

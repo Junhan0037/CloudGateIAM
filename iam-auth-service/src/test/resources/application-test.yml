@@ -18,6 +18,12 @@ spring:
   h2:
     console:
       enabled: false
+auth:
+  server:
+    issuer: http://localhost:8080
+    client-id: test-client
+    client-secret: test-secret
+    redirect-uri: http://localhost:3000/login/oauth2/code/test
 server:
   servlet:
     session:
