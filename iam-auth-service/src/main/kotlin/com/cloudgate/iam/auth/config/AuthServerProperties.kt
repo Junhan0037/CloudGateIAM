@@ -10,5 +10,6 @@ data class AuthServerProperties(
     val issuer: String = "http://localhost:8080",
     val clientId: String = "minicloud-console",
     val clientSecret: String = "minicloud-secret",
-    val redirectUri: String = "http://localhost:3000/login/oauth2/code/minicloud"
+    val redirectUri: String = "http://localhost:3000/login/oauth2/code/minicloud",
+    val requireProofKey: Boolean = true // Authorization Code 플로우 시 PKCE 강제를 위한 플래그
 )
