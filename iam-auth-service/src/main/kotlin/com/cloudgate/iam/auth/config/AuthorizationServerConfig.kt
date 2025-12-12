@@ -91,6 +91,7 @@ class AuthorizationServerConfig(
             .clientSettings( // Authorization Code 요청 시 PKCE(code_challenge/code_verifier) 검증을 강제
                 ClientSettings.builder()
                     .requireProofKey(authServerProperties.requireProofKey)
+                    .requireAuthorizationConsent(false) // 데모 클라이언트는 기본 동의 절차를 생략
                     .build()
             )
             .build()

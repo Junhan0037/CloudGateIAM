@@ -14,18 +14,26 @@ data class AuthenticatedUserPrincipal @JsonCreator constructor(
     val userId: Long,
     @JsonProperty("tenantId")
     val tenantId: Long,
+    @JsonProperty("tenantCode")
+    val tenantCode: String = "",
     @JsonProperty("username")
     private val usernameValue: String,
+    @JsonProperty("email")
+    val email: String = "",
     @JsonProperty("mfaEnabled")
     val mfaEnabled: Boolean,
     @JsonProperty("status")
     val status: UserAccountStatus,
     @JsonProperty("roles")
-    private val roles: List<String>? = emptyList()
+    val roles: List<String> = emptyList(),
+    @JsonProperty("department")
+    val department: String? = null,
+    @JsonProperty("roleLevel")
+    val roleLevel: String? = null
 ) : UserDetails {
 
     override fun getAuthorities(): Collection<GrantedAuthority> =
-        roles.orEmpty().map { UserAuthority(it) }
+        roles.map { UserAuthority(it) }
 
     override fun getPassword(): String? = null
 

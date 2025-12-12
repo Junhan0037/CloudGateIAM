@@ -42,11 +42,34 @@ class CredentialAuthenticationService(
         return AuthenticatedUserPrincipal(
             userId = account.id ?: throw IllegalStateException("사용자 ID가 누락되었습니다. tenantId=$tenantId"),
             tenantId = tenantId,
+            tenantCode = account.tenant.code,
             usernameValue = account.username,
+            email = account.email,
             mfaEnabled = account.mfaEnabled,
             status = account.status,
-            roles = listOf("ROLE_USER")
+            roles = resolveRoles(account),
+            department = account.department,
+            roleLevel = account.roleLevel
         )
+    }
+
+    /**
+     * 간단한 역할 매핑을 수행해 기본 RBAC 컨텍스트를 구성
+     * 향후 Policy 서비스 연동 시 실제 역할/프로젝트 범위를 반영하도록 확장
+     */
+    private fun resolveRoles(account: UserAccount): List<String> {
+        val normalizedLevel = account.roleLevel?.trim()?.uppercase()
+
+        if (normalizedLevel.isNullOrBlank()) {
+            return listOf("TENANT_USER")
+        }
+
+        return when {
+            normalizedLevel.contains("SYSTEM") -> listOf("SYSTEM_ADMIN")
+            normalizedLevel.contains("ADMIN") -> listOf("TENANT_ADMIN")
+            normalizedLevel.contains("VIEWER") -> listOf("PROJECT_VIEWER")
+            else -> listOf("TENANT_USER")
+        }
     }
 
     private fun ensureTenantIsActive(account: UserAccount) {
