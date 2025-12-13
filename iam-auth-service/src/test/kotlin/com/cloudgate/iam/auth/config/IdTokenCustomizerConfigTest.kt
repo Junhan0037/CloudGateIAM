@@ -121,6 +121,48 @@ class IdTokenCustomizerConfigTest @Autowired constructor(
         assertThat(attributes?.get("email")).isEqualTo(user.email)
     }
 
+    @Test
+    fun `Access Token에도 사용자 컨텍스트 클레임을 추가한다`() {
+        val registeredClient = registeredClientRepository.findByClientId(authServerProperties.clientId)
+            ?: throw IllegalStateException("등록된 클라이언트를 찾을 수 없습니다.")
+
+        val principal = credentialAuthenticationService.authenticate(
+            tenantId = tenant.id ?: throw IllegalStateException("테넌트 ID가 없습니다."),
+            username = user.username,
+            rawPassword = "OidcPass123!"
+        )
+        val authenticationToken = TenantUsernamePasswordAuthenticationToken(
+            tenantId = tenant.id!!,
+            principal = principal,
+            credentials = null,
+            authorities = principal.authorities
+        )
+
+        val jwsHeader = JwsHeader.with(SignatureAlgorithm.RS256)
+        val claimsBuilder = JwtClaimsSet.builder()
+            .id(UUID.randomUUID().toString())
+            .issuer(authServerProperties.issuer)
+            .subject(principal.username)
+
+        val context = JwtEncodingContext.with(jwsHeader, claimsBuilder)
+            .registeredClient(registeredClient)
+            .principal(authenticationToken)
+            .authorizedScopes(setOf("openid", "profile"))
+            .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+            .authorizationGrant(authenticationToken)
+            .tokenType(OAuth2TokenType.ACCESS_TOKEN)
+            .build()
+
+        idTokenCustomizer.customize(context)
+
+        val claims = context.claims.build().claims
+
+        assertThat(claims["tenantId"]).isEqualTo(tenant.id)
+        assertThat(claims["userId"]).isEqualTo(user.id)
+        assertThat(claims["tenantCode"]).isEqualTo(tenant.code)
+        assertThat(claims["roles"]).isNotNull
+    }
+
     companion object {
         private val ID_TOKEN_TYPE = OAuth2TokenType("id_token")
     }
