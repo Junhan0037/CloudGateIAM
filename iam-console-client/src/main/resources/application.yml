@@ -1,0 +1,32 @@
+server:
+  port: 3000
+
+spring:
+  application:
+    name: iam-console-client
+  thymeleaf:
+    cache: false
+  security:
+    oauth2:
+      client:
+        registration:
+          minicloud:
+            client-id: ${MINICLOUD_CLIENT_ID:minicloud-console}
+            client-secret: ${MINICLOUD_CLIENT_SECRET:minicloud-secret}
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_basic
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - offline_access
+            client-name: MiniCloud Console
+        provider:
+          minicloud:
+            issuer-uri: http://localhost:8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

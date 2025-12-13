@@ -5,5 +5,6 @@ include(
     "iam-auth-service",
     "iam-account-service",
     "iam-policy-service",
-    "iam-audit-consumer"
+    "iam-audit-consumer",
+    "iam-console-client"
 )
