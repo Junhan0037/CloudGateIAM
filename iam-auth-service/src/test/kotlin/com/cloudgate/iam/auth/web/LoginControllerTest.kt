@@ -88,6 +88,7 @@ class LoginControllerTest @Autowired constructor(
             .andExpect(jsonPath("$.userId").value(activeUser.id!!.toInt()))
             .andExpect(jsonPath("$.tenantId").value(activeTenant.id!!.toInt()))
             .andExpect(jsonPath("$.mfaEnabled").value(false))
+            .andExpect(jsonPath("$.mfaVerified").value(true))
             .andExpect(cookie().exists("CGIAMSESSION"))
             .andReturn()
 
@@ -184,6 +185,7 @@ class LoginControllerTest @Autowired constructor(
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.username").value(activeUser.username))
+            .andExpect(jsonPath("$.mfaVerified").value(true))
 
         val logoutResult = mockMvc.perform(
             post("/auth/logout")

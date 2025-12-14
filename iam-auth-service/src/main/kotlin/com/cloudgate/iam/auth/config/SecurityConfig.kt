@@ -5,6 +5,7 @@ import com.cloudgate.iam.auth.web.dto.LogoutResponse
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import com.cloudgate.iam.auth.security.MfaVerificationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
@@ -21,6 +22,7 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
 import org.springframework.security.web.context.SecurityContextRepository
+import org.springframework.security.web.context.SecurityContextHolderFilter
 
 /**
  * Spring Security 설정으로 세션 기반 인증과 로그인 엔드포인트를 보호
@@ -54,7 +56,8 @@ class SecurityConfig {
         http: HttpSecurity,
         tenantAuthenticationProvider: TenantUsernamePasswordAuthenticationProvider,
         securityContextRepository: SecurityContextRepository,
-        logoutSuccessHandler: (HttpServletRequest, HttpServletResponse, Authentication?) -> Unit
+        logoutSuccessHandler: (HttpServletRequest, HttpServletResponse, Authentication?) -> Unit,
+        mfaVerificationFilter: MfaVerificationFilter
     ): SecurityFilterChain {
         http
             .csrf { it.disable() }
@@ -78,6 +81,7 @@ class SecurityConfig {
                     .invalidateHttpSession(true)
                     .logoutSuccessHandler(logoutSuccessHandler)
             }
+            .addFilterAfter(mfaVerificationFilter, SecurityContextHolderFilter::class.java)
 
         return http.build()
     }

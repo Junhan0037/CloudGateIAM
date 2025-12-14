@@ -1,6 +1,8 @@
 package com.cloudgate.iam.auth.web
 
 import com.cloudgate.iam.auth.web.dto.ErrorResponse
+import com.cloudgate.iam.auth.service.exception.MfaCodeInvalidException
+import com.cloudgate.iam.auth.service.exception.MfaRegistrationNotFoundException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.ConstraintViolationException
 import org.springframework.http.HttpStatus
@@ -29,6 +31,14 @@ class AuthExceptionHandler {
     @ExceptionHandler(DisabledException::class)
     fun handleDisabled(ex: DisabledException, request: HttpServletRequest): ResponseEntity<ErrorResponse> =
         buildResponse(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", ex.message, request)
+
+    @ExceptionHandler(MfaRegistrationNotFoundException::class)
+    fun handleMfaRegistration(ex: MfaRegistrationNotFoundException, request: HttpServletRequest): ResponseEntity<ErrorResponse> =
+        buildResponse(HttpStatus.CONFLICT, "MFA_NOT_READY", ex.message, request)
+
+    @ExceptionHandler(MfaCodeInvalidException::class)
+    fun handleMfaCodeInvalid(ex: MfaCodeInvalidException, request: HttpServletRequest): ResponseEntity<ErrorResponse> =
+        buildResponse(HttpStatus.UNAUTHORIZED, "MFA_CODE_INVALID", ex.message, request)
 
     @ExceptionHandler(MethodArgumentNotValidException::class, ConstraintViolationException::class, IllegalArgumentException::class)
     fun handleValidation(ex: Exception, request: HttpServletRequest): ResponseEntity<ErrorResponse> =

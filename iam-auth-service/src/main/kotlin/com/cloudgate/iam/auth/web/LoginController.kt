@@ -67,12 +67,13 @@ class LoginController(
             tenantId = principal.tenantId,
             username = principal.username,
             mfaEnabled = principal.mfaEnabled,
+            mfaVerified = principal.mfaVerified,
             sessionExpiresInSeconds = session.maxInactiveInterval
         )
     }
 
     /**
-     * 현재 세션의 사용자 정보를 반환한다.
+     * 현재 세션의 사용자 정보를 반환
      */
     @GetMapping("/me")
     fun me(authentication: Authentication): SessionInfoResponse {
@@ -81,7 +82,8 @@ class LoginController(
             userId = principal.userId,
             tenantId = principal.tenantId,
             username = principal.username,
-            mfaEnabled = principal.mfaEnabled
+            mfaEnabled = principal.mfaEnabled,
+            mfaVerified = principal.mfaVerified
         )
     }
 }

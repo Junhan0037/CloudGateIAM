@@ -31,6 +31,11 @@ auth:
     client-secret: minicloud-secret
     redirect-uri: http://localhost:3000/login/oauth2/code/minicloud
     require-proof-key: true
+  mfa:
+    issuer: MiniCloud IAM
+    digits: 6
+    period-seconds: 30
+    allowed-drift-windows: 1
 server:
   servlet:
     session:

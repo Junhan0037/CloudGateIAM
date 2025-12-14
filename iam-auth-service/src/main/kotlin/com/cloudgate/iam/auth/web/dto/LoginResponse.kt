@@ -9,5 +9,6 @@ data class LoginResponse(
     val tenantId: Long,
     val username: String,
     val mfaEnabled: Boolean,
+    val mfaVerified: Boolean,
     val sessionExpiresInSeconds: Int
 )

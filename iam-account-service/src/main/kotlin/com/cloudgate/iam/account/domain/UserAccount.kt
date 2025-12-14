@@ -53,6 +53,15 @@ class UserAccount(
     @Column(name = "mfa_enabled", nullable = false)
     var mfaEnabled: Boolean = false,
 
+    @Column(name = "mfa_secret", length = 120)
+    var mfaSecret: String? = null,
+
+    @Column(name = "pending_mfa_secret", length = 120)
+    var pendingMfaSecret: String? = null,
+
+    @Column(name = "mfa_enrolled_at")
+    var mfaEnrolledAt: Instant? = null,
+
     @Column(name = "department", length = 120)
     var department: String? = null,
 

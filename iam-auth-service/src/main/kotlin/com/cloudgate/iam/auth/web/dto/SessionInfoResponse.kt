@@ -7,5 +7,6 @@ data class SessionInfoResponse(
     val userId: Long,
     val tenantId: Long,
     val username: String,
-    val mfaEnabled: Boolean
+    val mfaEnabled: Boolean,
+    val mfaVerified: Boolean
 )

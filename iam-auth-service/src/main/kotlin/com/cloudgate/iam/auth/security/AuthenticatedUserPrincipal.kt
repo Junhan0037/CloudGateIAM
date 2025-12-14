@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
+import java.io.Serializable
 
 /**
  * 세션에 저장되는 인증 사용자 정보로, 향후 RBAC/ABAC 확장 시 속성을 확장
@@ -22,6 +23,8 @@ data class AuthenticatedUserPrincipal @JsonCreator constructor(
     val email: String = "",
     @JsonProperty("mfaEnabled")
     val mfaEnabled: Boolean,
+    @JsonProperty("mfaVerified")
+    val mfaVerified: Boolean = false,
     @JsonProperty("status")
     val status: UserAccountStatus,
     @JsonProperty("roles")
@@ -30,7 +33,7 @@ data class AuthenticatedUserPrincipal @JsonCreator constructor(
     val department: String? = null,
     @JsonProperty("roleLevel")
     val roleLevel: String? = null
-) : UserDetails {
+) : UserDetails, Serializable {
 
     override fun getAuthorities(): Collection<GrantedAuthority> =
         roles.map { UserAuthority(it) }

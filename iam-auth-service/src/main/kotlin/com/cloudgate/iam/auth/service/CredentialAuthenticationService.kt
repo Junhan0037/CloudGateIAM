@@ -38,6 +38,7 @@ class CredentialAuthenticationService(
         }
 
         account.lastLoginAt = Instant.now()
+        val mfaEnabled = account.mfaEnabled
 
         return AuthenticatedUserPrincipal(
             userId = account.id ?: throw IllegalStateException("사용자 ID가 누락되었습니다. tenantId=$tenantId"),
@@ -45,7 +46,8 @@ class CredentialAuthenticationService(
             tenantCode = account.tenant.code,
             usernameValue = account.username,
             email = account.email,
-            mfaEnabled = account.mfaEnabled,
+            mfaEnabled = mfaEnabled,
+            mfaVerified = !mfaEnabled,
             status = account.status,
             roles = resolveRoles(account),
             department = account.department,
