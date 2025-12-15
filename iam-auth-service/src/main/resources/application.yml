@@ -1,6 +1,19 @@
 spring:
   application:
     name: iam-auth-service
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    client-id: iam-auth-service
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      linger-ms: 5
+      retries: 3
+      properties:
+        spring.json.add.type.headers: true
+        spring.json.write-dates-as-timestamps: false
+        compression.type: lz4
   datasource:
     url: jdbc:mysql://localhost:3306/cloudgate_iam?useSSL=false&characterEncoding=UTF-8&serverTimezone=UTC
     username: cloudgate
@@ -43,6 +56,12 @@ server:
         name: CGIAMSESSION
         http-only: true
         secure: false
+audit:
+  kafka:
+    enabled: true
+    login-topic: iam.audit.login
+    policy-topic: iam.audit.policy
+    client-id: iam-auth-service
 management:
   endpoints:
     web:

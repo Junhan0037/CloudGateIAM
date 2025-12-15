@@ -1,5 +1,6 @@
 package com.cloudgate.iam.auth.web
 
+import com.cloudgate.iam.auth.audit.LoginAuditEventPublisher
 import com.cloudgate.iam.auth.security.AuthenticatedUserPrincipal
 import com.cloudgate.iam.auth.security.TenantUsernamePasswordAuthenticationToken
 import com.cloudgate.iam.auth.web.dto.LoginRequest
@@ -27,7 +28,8 @@ import org.springframework.web.bind.annotation.RestController
 @Validated
 class LoginController(
     private val authenticationManager: AuthenticationManager,
-    private val securityContextRepository: SecurityContextRepository
+    private val securityContextRepository: SecurityContextRepository,
+    private val loginAuditEventPublisher: LoginAuditEventPublisher
 ) {
 
     /**
@@ -61,6 +63,13 @@ class LoginController(
 
         val principal = authentication.principal as AuthenticatedUserPrincipal
 
+        loginAuditEventPublisher.publishLoginSuccess(
+            principal = principal,
+            sessionId = session.id,
+            clientIp = resolveClientIp(httpRequest),
+            userAgent = httpRequest.getHeader("User-Agent")
+        )
+
         return LoginResponse(
             sessionId = session.id,
             userId = principal.userId,
@@ -85,5 +94,16 @@ class LoginController(
             mfaEnabled = principal.mfaEnabled,
             mfaVerified = principal.mfaVerified
         )
+    }
+
+    /**
+     * X-Forwarded-For를 우선 확인해 클라이언트 IP를 파악
+     */
+    private fun resolveClientIp(request: HttpServletRequest): String? {
+        val forwardedFor = request.getHeader("X-Forwarded-For")
+        if (!forwardedFor.isNullOrBlank()) {
+            return forwardedFor.split(",").firstOrNull()?.trim()
+        }
+        return request.remoteAddr
     }
 }

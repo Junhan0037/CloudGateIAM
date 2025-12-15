@@ -9,7 +9,12 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 @SpringBootApplication
 @EntityScan(basePackages = ["com.cloudgate.iam.account.domain"])
 @EnableJpaRepositories(basePackages = ["com.cloudgate.iam.account.domain"])
-@ConfigurationPropertiesScan(basePackages = ["com.cloudgate.iam.auth.config"])
+@ConfigurationPropertiesScan(
+    basePackages = [
+        "com.cloudgate.iam.auth.config",
+        "com.cloudgate.iam.common.config"
+    ]
+)
 class AuthApplication
 
 fun main(args: Array<String>) {

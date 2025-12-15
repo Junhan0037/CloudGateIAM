@@ -1,6 +1,15 @@
 spring:
   application:
     name: iam-auth-service-test
+  kafka:
+    bootstrap-servers: localhost:9092
+    client-id: iam-auth-service-test
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+        spring.json.write-dates-as-timestamps: false
   datasource:
     url: jdbc:h2:mem:authdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
     driver-class-name: org.h2.Driver
@@ -30,3 +39,8 @@ server:
     session:
       cookie:
         name: CGIAMSESSION
+audit:
+  kafka:
+    enabled: false
+    login-topic: iam.audit.login
+    policy-topic: iam.audit.policy

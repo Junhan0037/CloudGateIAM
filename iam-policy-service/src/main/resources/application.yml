@@ -1,32 +1,27 @@
 spring:
   application:
-    name: iam-policy-service-test
+    name: iam-policy-service
   kafka:
-    bootstrap-servers: localhost:9092
-    client-id: iam-policy-service-test
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    client-id: iam-policy-service
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      linger-ms: 5
+      retries: 3
       properties:
         spring.json.add.type.headers: true
         spring.json.write-dates-as-timestamps: false
-  datasource:
-    url: jdbc:h2:mem:policydb;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+        compression.type: lz4
   jpa:
-    hibernate:
-      ddl-auto: create-drop
     properties:
       hibernate:
         format_sql: true
     open-in-view: false
-  h2:
-    console:
-      enabled: false
 audit:
   kafka:
-    enabled: false
+    enabled: true
     login-topic: iam.audit.login
     policy-topic: iam.audit.policy
+    client-id: iam-policy-service

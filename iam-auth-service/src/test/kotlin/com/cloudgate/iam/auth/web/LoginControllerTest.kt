@@ -5,6 +5,7 @@ import com.cloudgate.iam.account.domain.TenantRepository
 import com.cloudgate.iam.account.domain.UserAccount
 import com.cloudgate.iam.account.domain.UserAccountRepository
 import com.cloudgate.iam.auth.AuthApplication
+import com.cloudgate.iam.auth.audit.LoginAuditEventPublisher
 import com.cloudgate.iam.common.domain.TenantStatus
 import com.cloudgate.iam.common.domain.UserAccountStatus
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -24,10 +26,12 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Primary
 import java.time.Instant
 
 @SpringBootTest(
-    classes = [AuthApplication::class],
+    classes = [AuthApplication::class, LoginControllerTest.TestConfig::class],
     properties = ["spring.session.store-type=none"]
 )
 @AutoConfigureMockMvc
@@ -37,7 +41,8 @@ class LoginControllerTest @Autowired constructor(
     private val tenantRepository: TenantRepository,
     private val userAccountRepository: UserAccountRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val recordingLoginAuditEventPublisher: RecordingLoginAuditEventPublisher
 ) {
 
     private lateinit var activeTenant: Tenant
@@ -45,6 +50,7 @@ class LoginControllerTest @Autowired constructor(
 
     @BeforeEach
     fun setUp() {
+        recordingLoginAuditEventPublisher.events.clear()
         userAccountRepository.deleteAllInBatch()
         tenantRepository.deleteAllInBatch()
 
@@ -94,6 +100,12 @@ class LoginControllerTest @Autowired constructor(
 
         val responseBody = result.response.contentAsString
         assertThat(responseBody).contains("sessionExpiresInSeconds")
+
+        assertThat(recordingLoginAuditEventPublisher.events).hasSize(1)
+        val published = recordingLoginAuditEventPublisher.events.first()
+        assertThat(published.sessionId).isNotBlank
+        assertThat(published.principal.userId).isEqualTo(activeUser.id)
+        assertThat(published.principal.tenantId).isEqualTo(activeTenant.id)
     }
 
     @Test
@@ -202,5 +214,36 @@ class LoginControllerTest @Autowired constructor(
             .andReturn()
 
         assertThat(meResult.response.status).isEqualTo(HttpStatus.UNAUTHORIZED.value())
+    }
+
+    data class PublishedLoginAudit(
+        val principal: com.cloudgate.iam.auth.security.AuthenticatedUserPrincipal,
+        val sessionId: String,
+        val clientIp: String?,
+        val userAgent: String?
+    )
+
+    /**
+     * 테스트에서 감사 발행 호출을 기록하기 위한 더미 구현체
+     */
+    class RecordingLoginAuditEventPublisher : LoginAuditEventPublisher {
+        val events: MutableList<PublishedLoginAudit> = mutableListOf()
+
+        override fun publishLoginSuccess(
+            principal: com.cloudgate.iam.auth.security.AuthenticatedUserPrincipal,
+            sessionId: String,
+            clientIp: String?,
+            userAgent: String?
+        ) {
+            events += PublishedLoginAudit(principal, sessionId, clientIp, userAgent)
+        }
+    }
+
+    @TestConfiguration
+    class TestConfig {
+        @Bean
+        @Primary
+        fun recordingLoginAuditEventPublisher(): RecordingLoginAuditEventPublisher =
+            RecordingLoginAuditEventPublisher()
     }
 }
