@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: iam-audit-consumer
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    client-id: iam-audit-consumer
+    consumer:
+      group-id: iam-audit-consumer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: com.cloudgate.iam.common.event
+        spring.json.use.type.headers: true
+        spring.json.value.default.type: com.cloudgate.iam.common.event.AuditEvent
+    listener:
+      ack-mode: record
+      missing-topics-fatal: false
+  datasource:
+    url: jdbc:mysql://localhost:3306/cloudgate_iam?useSSL=false&characterEncoding=UTF-8&serverTimezone=UTC
+    username: cloudgate
+    password: cloudgate-pass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+audit:
+  kafka:
+    enabled: true
+    login-topic: iam.audit.login
+    policy-topic: iam.audit.policy
+    client-id: iam-audit-consumer
+
+logging:
+  level:
+    org.springframework.kafka.listener: INFO

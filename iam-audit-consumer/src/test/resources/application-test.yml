@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: iam-audit-consumer-test
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    client-id: iam-audit-consumer-test
+    consumer:
+      group-id: iam-audit-consumer-test
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: com.cloudgate.iam.common.event
+        spring.json.use.type.headers: true
+        spring.json.value.default.type: com.cloudgate.iam.common.event.AuditEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+        spring.json.write-dates-as-timestamps: false
+    listener:
+      ack-mode: record
+      missing-topics-fatal: false
+  datasource:
+    url: jdbc:h2:mem:auditdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+audit:
+  kafka:
+    enabled: true
+    login-topic: iam.audit.login
+    policy-topic: iam.audit.policy
+    client-id: iam-audit-consumer-test
