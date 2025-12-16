@@ -17,6 +17,8 @@ data class AuthenticatedUserPrincipal @JsonCreator constructor(
     val tenantId: Long,
     @JsonProperty("tenantCode")
     val tenantCode: String = "",
+    @JsonProperty("tenantRegion")
+    val tenantRegion: String,
     @JsonProperty("username")
     private val usernameValue: String,
     @JsonProperty("email")
@@ -34,6 +36,10 @@ data class AuthenticatedUserPrincipal @JsonCreator constructor(
     @JsonProperty("roleLevel")
     val roleLevel: String? = null
 ) : UserDetails, Serializable {
+
+    init {
+        require(tenantRegion.isNotBlank()) { "테넌트 리전은 비어 있을 수 없습니다." }
+    }
 
     override fun getAuthorities(): Collection<GrantedAuthority> =
         roles.map { UserAuthority(it) }

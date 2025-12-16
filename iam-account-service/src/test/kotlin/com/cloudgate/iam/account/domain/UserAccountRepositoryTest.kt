@@ -17,7 +17,7 @@ class UserAccountRepositoryTest @Autowired constructor(
 
     @Test
     fun `테넌트별 사용자 조회가 동작한다`() {
-        val tenant = tenantRepository.saveAndFlush(Tenant(code = "tenant-c", name = "Tenant C"))
+        val tenant = tenantRepository.saveAndFlush(Tenant(code = "tenant-c", name = "Tenant C", region = "KR"))
         userAccountRepository.saveAndFlush(
             UserAccount(
                 tenant = tenant,
@@ -36,7 +36,7 @@ class UserAccountRepositoryTest @Autowired constructor(
 
     @Test
     fun `테넌트 내 이메일 중복 시 무결성이 보장된다`() {
-        val tenant = tenantRepository.saveAndFlush(Tenant(code = "tenant-d", name = "Tenant D"))
+        val tenant = tenantRepository.saveAndFlush(Tenant(code = "tenant-d", name = "Tenant D", region = "KR"))
         userAccountRepository.saveAndFlush(
             UserAccount(
                 tenant = tenant,

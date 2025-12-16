@@ -50,7 +50,8 @@ class MfaControllerTest @Autowired constructor(
         tenant = tenantRepository.save(
             Tenant(
                 code = "MFA-TENANT",
-                name = "MFA 테넌트"
+                name = "MFA 테넌트",
+                region = "KR"
             )
         )
 
@@ -123,6 +124,7 @@ class MfaControllerTest @Autowired constructor(
                 .cookie(sessionCookie)
         )
             .andExpect(status().isOk)
+            .andExpect(jsonPath("$.tenantRegion").value(tenant.region))
             .andExpect(jsonPath("$.mfaEnabled").value(true))
             .andExpect(jsonPath("$.mfaVerified").value(true))
     }
@@ -186,6 +188,7 @@ class MfaControllerTest @Autowired constructor(
                 .cookie(sessionCookie)
         )
             .andExpect(status().isOk)
+            .andExpect(jsonPath("$.tenantRegion").value(tenant.region))
             .andExpect(jsonPath("$.mfaVerified").value(true))
     }
 

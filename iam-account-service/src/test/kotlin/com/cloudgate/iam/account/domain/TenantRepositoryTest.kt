@@ -16,10 +16,10 @@ class TenantRepositoryTest @Autowired constructor(
 
     @Test
     fun `테넌트 코드가 중복되면 예외가 발생한다`() {
-        val tenant = Tenant(code = "tenant-a", name = "Tenant A")
+        val tenant = Tenant(code = "tenant-a", name = "Tenant A", region = "KR")
         tenantRepository.saveAndFlush(tenant)
 
-        val duplicated = Tenant(code = "tenant-a", name = "Tenant A Duplicate")
+        val duplicated = Tenant(code = "tenant-a", name = "Tenant A Duplicate", region = "KR")
 
         assertThrows<DataIntegrityViolationException> {
             tenantRepository.saveAndFlush(duplicated)
@@ -28,7 +28,7 @@ class TenantRepositoryTest @Autowired constructor(
 
     @Test
     fun `코드 기반 조회가 가능하다`() {
-        val tenant = Tenant(code = "tenant-b", name = "Tenant B")
+        val tenant = Tenant(code = "tenant-b", name = "Tenant B", region = "US")
         tenantRepository.saveAndFlush(tenant)
 
         val found = tenantRepository.findByCode("tenant-b")

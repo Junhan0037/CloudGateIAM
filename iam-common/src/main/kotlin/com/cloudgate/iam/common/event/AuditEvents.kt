@@ -25,13 +25,14 @@ data class LoginAuditEvent(
     val userId: Long,
     val username: String,
     val tenantCode: String,
+    val tenantRegion: String,
     val sessionId: String,
     val mfaVerified: Boolean,
     val clientIp: String?,
     val userAgent: String?
 ) : AuditEvent {
     override val eventType: String = "LOGIN_SUCCESS"
-    override val version: Int = 1
+    override val version: Int = 2
 }
 
 /**

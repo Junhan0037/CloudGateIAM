@@ -23,7 +23,8 @@ import java.time.Instant
     ],
     indexes = [
         Index(name = "idx_login_audit_tenant_time", columnList = "tenant_id, occurred_at"),
-        Index(name = "idx_login_audit_user_time", columnList = "user_id, occurred_at")
+        Index(name = "idx_login_audit_user_time", columnList = "user_id, occurred_at"),
+        Index(name = "idx_login_audit_region_time", columnList = "tenant_region, occurred_at")
     ]
 )
 class LoginAuditRecord(
@@ -54,6 +55,9 @@ class LoginAuditRecord(
     @Column(name = "tenant_code", nullable = false, length = 100)
     val tenantCode: String,
 
+    @Column(name = "tenant_region", nullable = false, length = 30)
+    val tenantRegion: String,
+
     @Column(name = "session_id", nullable = false, length = 120)
     val sessionId: String,
 
@@ -78,5 +82,6 @@ class LoginAuditRecord(
         require(userId >= 0) { "사용자 ID는 음수가 될 수 없습니다." }
         require(username.isNotBlank()) { "사용자 이름은 비어 있을 수 없습니다." }
         require(sessionId.isNotBlank()) { "세션 ID는 비어 있을 수 없습니다." }
+        require(tenantRegion.isNotBlank()) { "테넌트 리전은 비어 있을 수 없습니다." }
     }
 }

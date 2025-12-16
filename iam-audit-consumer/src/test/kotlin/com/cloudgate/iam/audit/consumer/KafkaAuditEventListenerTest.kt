@@ -47,6 +47,7 @@ class KafkaAuditEventListenerTest @Autowired constructor(
             userId = 10L,
             username = "tester",
             tenantCode = "tenant-A",
+            tenantRegion = "KR",
             sessionId = "session-123",
             mfaVerified = true,
             clientIp = "127.0.0.1",
@@ -59,6 +60,7 @@ class KafkaAuditEventListenerTest @Autowired constructor(
             val stored = loginAuditRecordRepository.findAll()
             assertThat(stored).hasSize(1)
             assertThat(stored.first().username).isEqualTo(event.username)
+            assertThat(stored.first().tenantRegion).isEqualTo(event.tenantRegion)
         }
     }
 
@@ -73,6 +75,7 @@ class KafkaAuditEventListenerTest @Autowired constructor(
             userId = 20L,
             username = "dup-user",
             tenantCode = "tenant-B",
+            tenantRegion = "KR",
             sessionId = "session-dup",
             mfaVerified = false,
             clientIp = null,

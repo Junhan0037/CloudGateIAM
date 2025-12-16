@@ -40,6 +40,7 @@ class IdTokenCustomizerConfig {
         val claims = context.claims
         claims.claim("tenantId", principal.tenantId)
         claims.claim("tenantCode", principal.tenantCode)
+        claims.claim("tenantRegion", principal.tenantRegion)
         claims.claim("userId", principal.userId)
         claims.claim("preferred_username", principal.username)
 

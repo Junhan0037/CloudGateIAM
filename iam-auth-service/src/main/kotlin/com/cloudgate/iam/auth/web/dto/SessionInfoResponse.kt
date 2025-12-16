@@ -6,6 +6,7 @@ package com.cloudgate.iam.auth.web.dto
 data class SessionInfoResponse(
     val userId: Long,
     val tenantId: Long,
+    val tenantRegion: String,
     val username: String,
     val mfaEnabled: Boolean,
     val mfaVerified: Boolean

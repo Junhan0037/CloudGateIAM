@@ -53,6 +53,7 @@ class KafkaLoginAuditEventPublisher(
             userId = principal.userId,
             username = principal.username,
             tenantCode = principal.tenantCode,
+            tenantRegion = principal.tenantRegion,
             sessionId = sessionId,
             mfaVerified = principal.mfaVerified,
             clientIp = clientIp,

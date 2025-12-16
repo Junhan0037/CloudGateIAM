@@ -43,6 +43,7 @@ class AuditEventPersistenceService(
             userId = event.userId,
             username = truncate(event.username, 150) ?: event.username,
             tenantCode = truncate(event.tenantCode, 100) ?: event.tenantCode,
+            tenantRegion = truncate(event.tenantRegion, 30) ?: event.tenantRegion,
             sessionId = truncate(event.sessionId, 120) ?: event.sessionId,
             mfaVerified = event.mfaVerified,
             clientIp = truncate(event.clientIp, 45),

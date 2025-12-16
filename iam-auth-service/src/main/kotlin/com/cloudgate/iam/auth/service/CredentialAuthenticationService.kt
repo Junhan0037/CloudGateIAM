@@ -54,6 +54,7 @@ class CredentialAuthenticationService(
                 mfaEnabled = mfaEnabled,
                 mfaVerified = !mfaEnabled,
                 status = account.status,
+                tenantRegion = account.tenant.region,
                 roles = resolveRoles(account),
                 department = account.department,
                 roleLevel = account.roleLevel

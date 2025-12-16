@@ -48,6 +48,7 @@ class ResourceServerIntegrationTest @Autowired constructor(
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.tenantId").value(101))
             .andExpect(jsonPath("$.tenantCode").value("TENANT-101"))
+            .andExpect(jsonPath("$.tenantRegion").value("KR"))
             .andExpect(jsonPath("$.userId").value(501))
             .andExpect(jsonPath("$.roles[0]").value("TENANT_ADMIN"))
             .andExpect(jsonPath("$.scopes[0]").value("profile"))
@@ -78,6 +79,7 @@ class ResourceServerIntegrationTest @Autowired constructor(
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.tenantId").value(202))
+            .andExpect(jsonPath("$.tenantRegion").value("KR"))
             .andExpect(jsonPath("$.tenantCode").value("TENANT-202"))
             .andExpect(jsonPath("$.roles[0]").value("TENANT_USER"))
     }

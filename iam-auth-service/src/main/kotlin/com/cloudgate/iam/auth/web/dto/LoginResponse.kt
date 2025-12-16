@@ -7,6 +7,7 @@ data class LoginResponse(
     val sessionId: String,
     val userId: Long,
     val tenantId: Long,
+    val tenantRegion: String,
     val username: String,
     val mfaEnabled: Boolean,
     val mfaVerified: Boolean,

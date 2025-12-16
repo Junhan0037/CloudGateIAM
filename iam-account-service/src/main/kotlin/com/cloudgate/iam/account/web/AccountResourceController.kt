@@ -29,6 +29,7 @@ class AccountResourceController(
             subject = resourceUser.subject,
             userId = resourceUser.userId,
             tenantId = resourceUser.tenantId,
+            tenantRegion = resourceUser.tenantRegion,
             tenantCode = resourceUser.tenantCode,
             roles = resourceUser.roles,
             scopes = resourceUser.scopes,

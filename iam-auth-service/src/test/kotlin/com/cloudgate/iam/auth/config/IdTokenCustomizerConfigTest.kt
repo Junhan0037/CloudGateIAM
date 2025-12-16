@@ -51,7 +51,8 @@ class IdTokenCustomizerConfigTest @Autowired constructor(
         tenant = tenantRepository.save(
             Tenant(
                 code = "TENANT-CODE",
-                name = "테스트 테넌트"
+                name = "테스트 테넌트",
+                region = "KR"
             )
         )
 
@@ -107,6 +108,7 @@ class IdTokenCustomizerConfigTest @Autowired constructor(
 
         assertThat(claims["tenantId"]).isEqualTo(tenant.id)
         assertThat(claims["tenantCode"]).isEqualTo(tenant.code)
+        assertThat(claims["tenantRegion"]).isEqualTo(tenant.region)
         assertThat(claims["userId"]).isEqualTo(user.id)
         assertThat(claims["preferred_username"]).isEqualTo(user.username)
 
@@ -160,6 +162,7 @@ class IdTokenCustomizerConfigTest @Autowired constructor(
         assertThat(claims["tenantId"]).isEqualTo(tenant.id)
         assertThat(claims["userId"]).isEqualTo(user.id)
         assertThat(claims["tenantCode"]).isEqualTo(tenant.code)
+        assertThat(claims["tenantRegion"]).isEqualTo(tenant.region)
         assertThat(claims["roles"]).isNotNull
     }
 

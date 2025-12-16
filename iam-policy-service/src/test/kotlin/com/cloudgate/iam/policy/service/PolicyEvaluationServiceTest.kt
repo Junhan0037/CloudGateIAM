@@ -41,6 +41,7 @@ class PolicyEvaluationServiceTest @Autowired constructor(
     private val userRoleAssignmentRepository: UserRoleAssignmentRepository,
     private val policyRepository: PolicyRepository
 ) {
+    private val defaultRegion: String = "KR"
 
     @Test
     fun `RBAC 권한이 없으면 즉시 거부한다`() {
@@ -59,6 +60,7 @@ class PolicyEvaluationServiceTest @Autowired constructor(
                 userId = 1001L,
                 resource = "compute.instance",
                 action = "compute.instance:write",
+                tenantRegion = defaultRegion,
                 userAttributes = mapOf("department" to listOf("DEV"))
             )
         )
@@ -94,6 +96,7 @@ class PolicyEvaluationServiceTest @Autowired constructor(
                 userId = 2001L,
                 resource = "storage.bucket",
                 action = "storage.bucket:write",
+                tenantRegion = defaultRegion,
                 userAttributes = mapOf("riskLevel" to listOf("HIGH"))
             )
         )
@@ -120,6 +123,7 @@ class PolicyEvaluationServiceTest @Autowired constructor(
                 userId = 3001L,
                 resource = "iam.session",
                 action = "iam.session:issue",
+                tenantRegion = defaultRegion,
                 environmentAttributes = mapOf("ip" to listOf("10.10.0.1"))
             )
         )
@@ -164,6 +168,7 @@ class PolicyEvaluationServiceTest @Autowired constructor(
                 resource = "compute.instance",
                 action = "compute.instance:describe",
                 projectId = 77L,
+                tenantRegion = defaultRegion,
                 userAttributes = mapOf("department" to listOf("PLATFORM")),
                 environmentAttributes = mapOf("ip" to listOf("10.1.1.10"))
             )
@@ -173,6 +178,57 @@ class PolicyEvaluationServiceTest @Autowired constructor(
         assertThat(decision.reason).isEqualTo(DecisionReason.ABAC_ALLOW)
         assertThat(decision.matchedRoleNames).contains("PROJECT_VIEWER")
         assertThat(decision.matchedPolicyId).isNotNull()
+    }
+
+    @Test
+    fun `리소스 리전이 자동 주입되어 교차 리전 접근을 차단한다`() {
+        val role = createRoleWithPermission(
+            tenantId = 4L,
+            roleName = "TENANT_ADMIN",
+            scope = RoleScope.TENANT,
+            resource = "compute.instance",
+            action = "compute.instance:*"
+        )
+        assignRole(tenantId = 4L, userId = 5001L, role = role)
+
+        val denyPolicy = savePolicy(
+            tenantId = 4L,
+            name = "deny-cn-region",
+            resource = "compute.instance",
+            actions = setOf("compute.instance:*"),
+            effect = PolicyEffect.DENY,
+            conditionPayload = """{"resource.region": "CN"}""",
+            priority = 1
+        )
+
+        val denyDecision = policyEvaluationService.evaluate(
+            PolicyEvaluationRequest(
+                tenantId = 4L,
+                userId = 5001L,
+                resource = "compute.instance",
+                action = "compute.instance:read",
+                tenantRegion = defaultRegion.lowercase(),
+                resourceRegion = "cn"
+            )
+        )
+
+        assertThat(denyDecision.allowed).isFalse()
+        assertThat(denyDecision.reason).isEqualTo(DecisionReason.ABAC_DENY_EXPLICIT)
+        assertThat(denyDecision.matchedPolicyId).isEqualTo(denyPolicy.id)
+
+        val allowDecision = policyEvaluationService.evaluate(
+            PolicyEvaluationRequest(
+                tenantId = 4L,
+                userId = 5001L,
+                resource = "compute.instance",
+                action = "compute.instance:describe",
+                tenantRegion = defaultRegion,
+                resourceRegion = defaultRegion.lowercase()
+            )
+        )
+
+        assertThat(allowDecision.allowed).isTrue()
+        assertThat(allowDecision.reason).isEqualTo(DecisionReason.ABAC_SKIPPED_NO_POLICY)
     }
 
     private fun createRoleWithPermission(

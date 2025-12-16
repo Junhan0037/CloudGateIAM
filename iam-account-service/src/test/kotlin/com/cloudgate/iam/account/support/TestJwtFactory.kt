@@ -1,5 +1,6 @@
 package com.cloudgate.iam.account.support
 
+import com.cloudgate.iam.common.domain.RegionCode
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm
 import org.springframework.security.oauth2.jwt.JwsHeader
 import org.springframework.security.oauth2.jwt.JwtClaimsSet
@@ -19,6 +20,7 @@ class TestJwtFactory(
         subject: String = "resource-user",
         tenantId: Long = 1L,
         tenantCode: String = "TENANT-CODE",
+        tenantRegion: String = "KR",
         userId: Long = 10L,
         roles: List<String> = listOf("TENANT_USER"),
         scopes: Set<String> = setOf("profile"),
@@ -34,6 +36,7 @@ class TestJwtFactory(
             .expiresAt(now.plus(ttl))
             .claim("tenantId", tenantId)
             .claim("tenantCode", tenantCode)
+            .claim("tenantRegion", RegionCode.normalize(tenantRegion))
             .claim("userId", userId)
             .claim("roles", roles)
             .claim("scope", scopes.joinToString(" "))
@@ -47,6 +50,7 @@ class TestJwtFactory(
         subject: String = "resource-user",
         tenantId: Long = 1L,
         tenantCode: String = "TENANT-CODE",
+        tenantRegion: String = "KR",
         userId: Long = 10L,
         roles: List<String> = listOf("TENANT_USER"),
         issuer: String = "http://localhost:8080",
@@ -60,6 +64,7 @@ class TestJwtFactory(
             .expiresAt(now.plus(ttl))
             .claim("tenantId", tenantId)
             .claim("tenantCode", tenantCode)
+            .claim("tenantRegion", RegionCode.normalize(tenantRegion))
             .claim("userId", userId)
             .claim("roles", roles)
             .claim("attributes", mapOf("department" to "ENGINEERING", "mfaEnabled" to true))

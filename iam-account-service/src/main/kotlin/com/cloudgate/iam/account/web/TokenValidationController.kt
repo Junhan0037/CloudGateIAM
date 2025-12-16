@@ -36,6 +36,7 @@ class TokenValidationController(
             tokenType = request.tokenType,
             subject = resourceUser.subject,
             tenantId = resourceUser.tenantId,
+            tenantRegion = resourceUser.tenantRegion,
             tenantCode = resourceUser.tenantCode,
             roles = resourceUser.roles,
             attributes = resourceUser.attributes,

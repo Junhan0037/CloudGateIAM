@@ -1,25 +1,35 @@
 package com.cloudgate.iam.policy.service
 
+import com.cloudgate.iam.common.domain.RegionCode
 import com.cloudgate.iam.policy.dsl.AttributeScope
 
 /**
  * RBAC·ABAC 통합 정책 평가를 위한 입력 컨텍스트 정의
+ * - tenantRegion/resourceRegion을 정규화해 정책 속성 컨텍스트에 자동 주입
  */
 data class PolicyEvaluationRequest(
     val tenantId: Long,
     val userId: Long,
     val resource: String,
     val action: String,
+    val tenantRegion: String,
+    val resourceRegion: String? = null,
     val projectId: Long? = null,
     val userAttributes: Map<String, List<String>> = emptyMap(),
     val resourceAttributes: Map<String, List<String>> = emptyMap(),
     val environmentAttributes: Map<String, List<String>> = emptyMap()
 ) {
+    private val normalizedTenantRegion: String = RegionCode.normalize(tenantRegion)
+    private val normalizedResourceRegion: String? = resourceRegion?.let { RegionCode.normalize(it) }
+
     init {
         require(tenantId > 0) { "테넌트 ID는 0보다 커야 합니다." }
         require(userId > 0) { "사용자 ID는 0보다 커야 합니다." }
         require(resource.isNotBlank()) { "리소스 식별자는 비어 있을 수 없습니다." }
         require(action.isNotBlank()) { "액션 식별자는 비어 있을 수 없습니다." }
+        resourceRegion?.let {
+            require(it.isNotBlank()) { "리소스 리전이 제공될 경우 비어 있을 수 없습니다." }
+        }
     }
 
     /**
@@ -27,14 +37,49 @@ data class PolicyEvaluationRequest(
      */
     fun attributeContext(): AttributeContext = AttributeContext(
         user = normalizeAttributes(userAttributes),
-        resource = normalizeAttributes(resourceAttributes),
-        environment = normalizeAttributes(environmentAttributes)
+        resource = normalizeResourceAttributes(),
+        environment = normalizeEnvironmentAttributes()
     )
 
-    private fun normalizeAttributes(raw: Map<String, List<String>>): Map<String, List<String>> =
-        raw.mapValues { (_, values) ->
-            values.map { it.trim() }.filter { it.isNotEmpty() }
-        }.filterValues { it.isNotEmpty() }
+    /**
+     * 리소스 리전은 호출자가 임의로 덮어쓰지 못하도록 서버가 주입한 값을 우선
+     */
+    private fun normalizeResourceAttributes(): Map<String, List<String>> {
+        val normalized = normalizeAttributes(resourceAttributes, reservedRegionKeys = setOf(RESOURCE_REGION_ATTR)).toMutableMap()
+        normalizedResourceRegion?.let { region ->
+            normalized[RESOURCE_REGION_ATTR] = listOf(region)
+        }
+        return normalized
+    }
+
+    /**
+     * 테넌트 리전은 요청 컨텍스트로부터 강제 주입하여 정책에서 안전하게 참조
+     */
+    private fun normalizeEnvironmentAttributes(): Map<String, List<String>> {
+        val normalized = normalizeAttributes(environmentAttributes, reservedRegionKeys = setOf(TENANT_REGION_ATTR)).toMutableMap()
+        normalized[TENANT_REGION_ATTR] = listOf(normalizedTenantRegion)
+        return normalized
+    }
+
+    private fun normalizeAttributes(raw: Map<String, List<String>>, reservedRegionKeys: Set<String> = emptySet()): Map<String, List<String>> =
+        raw.mapNotNull { (key, values) ->
+            val trimmedKey = key.trim()
+            if (trimmedKey.isEmpty()) return@mapNotNull null
+
+            val sanitizedValues = values.map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .let { vals ->
+                    if (reservedRegionKeys.contains(trimmedKey)) vals.map { RegionCode.normalize(it) } else vals
+                }
+            if (sanitizedValues.isEmpty()) return@mapNotNull null
+
+            trimmedKey to sanitizedValues
+        }.toMap()
+
+    companion object {
+        private const val RESOURCE_REGION_ATTR: String = "region"
+        private const val TENANT_REGION_ATTR: String = "tenantRegion"
+    }
 }
 
 /**

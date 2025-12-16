@@ -16,7 +16,7 @@ class PolicyDslParserTest {
             {
               "conditions": {
                 "user.department": "DEV",
-                "resource.region": ["KR", "SG"],
+                "resource.region": ["KR", "US"],
                 "env.ip": "10.0.0.0/8"
               }
             }
@@ -36,7 +36,7 @@ class PolicyDslParserTest {
         val resourceRegion = root.conditions.filterIsInstance<MatchCondition>()
             .first { it.attribute.scope == AttributeScope.RESOURCE }
         assertEquals(AttributeOperator.IN, resourceRegion.operator)
-        assertEquals(listOf("KR", "SG"), resourceRegion.values)
+        assertEquals(listOf("KR", "US"), resourceRegion.values)
     }
 
     @Test

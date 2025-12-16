@@ -1,5 +1,6 @@
 package com.cloudgate.iam.account.security
 
+import com.cloudgate.iam.common.domain.RegionCode
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.stereotype.Component
 import java.time.Instant
@@ -18,6 +19,10 @@ class ResourceUserMapper {
             subject = jwt.subject,
             userId = (jwt.claims["userId"] as? Number)?.toLong(),
             tenantId = (jwt.claims["tenantId"] as? Number)?.toLong(),
+            tenantRegion = (jwt.claims["tenantRegion"] as? String)
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { RegionCode.normalize(it) },
             tenantCode = jwt.claims["tenantCode"] as? String,
             roles = extractRoles(jwt),
             attributes = extractAttributes(jwt),
@@ -60,6 +65,7 @@ data class ResourceUser(
     val subject: String,
     val userId: Long?,
     val tenantId: Long?,
+    val tenantRegion: String?,
     val tenantCode: String?,
     val roles: List<String>,
     val attributes: Map<String, Any>,

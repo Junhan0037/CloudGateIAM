@@ -57,7 +57,8 @@ class LoginControllerTest @Autowired constructor(
         activeTenant = tenantRepository.save(
             Tenant(
                 code = "TENANT-1",
-                name = "테스트 테넌트"
+                name = "테스트 테넌트",
+                region = "KR"
             )
         )
 
@@ -93,6 +94,7 @@ class LoginControllerTest @Autowired constructor(
             .andExpect(jsonPath("$.sessionId").isNotEmpty)
             .andExpect(jsonPath("$.userId").value(activeUser.id!!.toInt()))
             .andExpect(jsonPath("$.tenantId").value(activeTenant.id!!.toInt()))
+            .andExpect(jsonPath("$.tenantRegion").value(activeTenant.region))
             .andExpect(jsonPath("$.mfaEnabled").value(false))
             .andExpect(jsonPath("$.mfaVerified").value(true))
             .andExpect(cookie().exists("CGIAMSESSION"))
@@ -141,7 +143,8 @@ class LoginControllerTest @Autowired constructor(
             Tenant(
                 code = "TENANT-2",
                 name = "비활성 테넌트",
-                status = TenantStatus.SUSPENDED
+                status = TenantStatus.SUSPENDED,
+                region = "KR"
             )
         )
 
@@ -196,6 +199,7 @@ class LoginControllerTest @Autowired constructor(
                 .cookie(sessionCookie!!)
         )
             .andExpect(status().isOk)
+            .andExpect(jsonPath("$.tenantRegion").value(activeTenant.region))
             .andExpect(jsonPath("$.username").value(activeUser.username))
             .andExpect(jsonPath("$.mfaVerified").value(true))
 

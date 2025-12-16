@@ -74,6 +74,7 @@ class LoginController(
             sessionId = session.id,
             userId = principal.userId,
             tenantId = principal.tenantId,
+            tenantRegion = principal.tenantRegion,
             username = principal.username,
             mfaEnabled = principal.mfaEnabled,
             mfaVerified = principal.mfaVerified,
@@ -90,6 +91,7 @@ class LoginController(
         return SessionInfoResponse(
             userId = principal.userId,
             tenantId = principal.tenantId,
+            tenantRegion = principal.tenantRegion,
             username = principal.username,
             mfaEnabled = principal.mfaEnabled,
             mfaVerified = principal.mfaVerified
