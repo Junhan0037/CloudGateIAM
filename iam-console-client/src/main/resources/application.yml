@@ -26,7 +26,10 @@ spring:
             issuer-uri: http://localhost:8080
 
 management:
+  metrics:
+    tags:
+      application: iam-console-client
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info,prometheus

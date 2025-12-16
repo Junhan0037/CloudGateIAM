@@ -25,3 +25,11 @@ audit:
     login-topic: iam.audit.login
     policy-topic: iam.audit.policy
     client-id: iam-policy-service
+management:
+  metrics:
+    tags:
+      application: iam-policy-service
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

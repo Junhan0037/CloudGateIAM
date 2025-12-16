@@ -1,0 +1,328 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: cloudgate-iam
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: spring-boot-services
+        honor_labels: true
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets:
+              - iam-auth-service.cloudgate-iam.svc.cluster.local:80
+              - iam-account-service.cloudgate-iam.svc.cluster.local:80
+              - iam-policy-service.cloudgate-iam.svc.cluster.local:80
+              - iam-audit-consumer.cloudgate-iam.svc.cluster.local:80
+              - iam-console-client.cloudgate-iam.svc.cluster.local:80
+            labels:
+              namespace: cloudgate-iam
+      - job_name: prometheus
+        static_configs:
+          - targets:
+              - localhost:9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: cloudgate-iam
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.53.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--storage.tsdb.retention.time=3d"
+          ports:
+            - containerPort: 9090
+              name: http
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: cloudgate-iam
+  labels:
+    app: prometheus
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-admin-secret
+  namespace: cloudgate-iam
+type: Opaque
+stringData:
+  admin-user: admin
+  admin-password: "ChangeMe123!" # 실서비스에서는 별도 Secret 주입 필수
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: cloudgate-iam
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        isDefault: true
+        url: http://prometheus.cloudgate-iam.svc.cluster.local:9090
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: cloudgate-iam
+data:
+  dashboard-providers.yaml: |
+    apiVersion: 1
+    providers:
+      - name: iam-overview
+        orgId: 1
+        folder: IAM
+        type: file
+        disableDeletion: true
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+  iam-overview.json: |
+    {
+      "id": null,
+      "title": "CloudGate IAM - 서비스 모니터링",
+      "tags": ["iam", "spring-boot"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "요청 처리율(RPS)",
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_seconds_count{application!=\"\"}[1m])) by (application)",
+              "legendFormat": "{{application}}"
+            }
+          ],
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+        },
+        {
+          "type": "timeseries",
+          "title": "p95 응답 지연",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application!=\"\"}[5m])) by (le, application))",
+              "legendFormat": "{{application}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+        },
+        {
+          "type": "stat",
+          "title": "에러율(5xx)",
+          "targets": [
+            {
+              "expr": "100 * sum(rate(http_server_requests_seconds_count{application!=\"\",status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count{application!=\"\"}[5m]))",
+              "legendFormat": "error-rate"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "orange", "value": 1},
+                  {"color": "red", "value": 5}
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {"h": 6, "w": 6, "x": 0, "y": 8}
+        },
+        {
+          "type": "stat",
+          "title": "헬스 체크 상태",
+          "targets": [
+            {
+              "expr": "avg(up{job=\"spring-boot-services\"})",
+              "legendFormat": "services-up"
+            }
+          ],
+          "gridPos": {"h": 6, "w": 6, "x": 6, "y": 8}
+        },
+        {
+          "type": "timeseries",
+          "title": "활성 세션/로그인 요청",
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_seconds_count{application=\"iam-auth-service\",uri=~\"/auth/.*\"}[1m]))",
+              "legendFormat": "auth-requests"
+            }
+          ],
+          "gridPos": {"h": 6, "w": 12, "x": 12, "y": 8}
+        }
+      ]
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: cloudgate-iam
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.4.3
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin-secret
+                  key: admin-user
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin-secret
+                  key: admin-password
+            - name: GF_SECURITY_ALLOW_EMBEDDING
+              value: "true"
+          ports:
+            - containerPort: 3000
+              name: http
+          # Grafana 프로비저닝 파일을 ConfigMap으로 주입
+          volumeMounts:
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: grafana-dashboards
+              mountPath: /etc/grafana/provisioning/dashboards/dashboard-providers.yaml
+              subPath: dashboard-providers.yaml
+            - name: grafana-dashboards
+              mountPath: /var/lib/grafana/dashboards/iam-overview.json
+              subPath: iam-overview.json
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 700m
+              memory: 1Gi
+      volumes:
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+        - name: grafana-dashboards
+          configMap:
+            name: grafana-dashboards
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: cloudgate-iam
+  labels:
+    app: grafana
+spec:
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000

@@ -40,3 +40,11 @@ audit:
 logging:
   level:
     org.springframework.kafka.listener: INFO
+management:
+  metrics:
+    tags:
+      application: iam-audit-consumer
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

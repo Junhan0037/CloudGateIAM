@@ -22,7 +22,10 @@ auth:
     issuer: http://localhost:8080
 
 management:
+  metrics:
+    tags:
+      application: iam-account-service
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info,prometheus
