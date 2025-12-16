@@ -1,6 +1,8 @@
 package com.cloudgate.iam.policy.domain
 
 import com.cloudgate.iam.common.domain.BaseEntity
+import com.cloudgate.iam.common.tenant.TENANT_FILTER_NAME
+import com.cloudgate.iam.common.tenant.TENANT_FILTER_PARAM
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -12,11 +14,13 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
+import org.hibernate.annotations.Filter
 
 /**
  * 사용자와 역할의 매핑 정보를 저장해 멀티테넌시 RBAC을 구성
  */
 @Entity
+@Filter(name = TENANT_FILTER_NAME, condition = "tenant_id = :$TENANT_FILTER_PARAM")
 @Table(
     name = "user_roles",
     uniqueConstraints = [

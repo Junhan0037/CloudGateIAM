@@ -2,6 +2,8 @@ package com.cloudgate.iam.policy.domain
 
 import com.cloudgate.iam.common.domain.BaseEntity
 import com.cloudgate.iam.common.domain.RoleScope
+import com.cloudgate.iam.common.tenant.TENANT_FILTER_NAME
+import com.cloudgate.iam.common.tenant.TENANT_FILTER_PARAM
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -12,11 +14,13 @@ import jakarta.persistence.Id
 import jakarta.persistence.Index
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
+import org.hibernate.annotations.Filter
 
 /**
  * RBAC 역할 정의 엔티티로, 테넌트 단위 혹은 시스템 전역 역할을 표현
  */
 @Entity
+@Filter(name = TENANT_FILTER_NAME, condition = "tenant_id = :$TENANT_FILTER_PARAM")
 @Table(
     name = "roles",
     uniqueConstraints = [

@@ -2,6 +2,8 @@ package com.cloudgate.iam.account.domain
 
 import com.cloudgate.iam.common.domain.BaseEntity
 import com.cloudgate.iam.common.domain.UserAccountStatus
+import com.cloudgate.iam.common.tenant.TENANT_FILTER_NAME
+import com.cloudgate.iam.common.tenant.TENANT_FILTER_PARAM
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -15,12 +17,14 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
+import org.hibernate.annotations.Filter
 import java.time.Instant
 
 /**
  * 테넌트 소속 사용자를 나타내며, 인증·보안과 연계되는 최소 정보를 저장
  */
 @Entity
+@Filter(name = TENANT_FILTER_NAME, condition = "tenant_id = :$TENANT_FILTER_PARAM")
 @Table(
     name = "user_accounts",
     uniqueConstraints = [

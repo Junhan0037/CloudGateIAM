@@ -7,6 +7,7 @@ import com.cloudgate.iam.policy.config.ClockConfig
 import com.cloudgate.iam.policy.domain.Policy
 import com.cloudgate.iam.policy.domain.PolicyEffect
 import com.cloudgate.iam.policy.domain.PolicyRepository
+import com.cloudgate.iam.common.tenant.TenantFilterConfiguration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -18,7 +19,12 @@ import org.springframework.test.context.ActiveProfiles
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(PolicyChangeService::class, ClockConfig::class, PolicyChangeServiceTest.TestConfig::class)
+@Import(
+    PolicyChangeService::class,
+    ClockConfig::class,
+    TenantFilterConfiguration::class,
+    PolicyChangeServiceTest.TestConfig::class
+)
 class PolicyChangeServiceTest @Autowired constructor(
     private val policyChangeService: PolicyChangeService,
     private val policyRepository: PolicyRepository,

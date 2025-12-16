@@ -15,6 +15,8 @@ import com.cloudgate.iam.policy.dsl.MatchCondition
 import com.cloudgate.iam.policy.dsl.NotCondition
 import com.cloudgate.iam.policy.dsl.PolicyDslParser
 import com.cloudgate.iam.policy.dsl.PolicyDocument
+import com.cloudgate.iam.common.tenant.TenantContextHolder
+import com.cloudgate.iam.common.tenant.TenantFilterApplier
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -31,25 +33,28 @@ class PolicyEvaluationService(
     private val userRoleAssignmentRepository: UserRoleAssignmentRepository,
     private val rolePermissionRepository: RolePermissionRepository,
     private val policyRepository: PolicyRepository,
-    private val policyDslParser: PolicyDslParser
+    private val policyDslParser: PolicyDslParser,
+    private val tenantFilterApplier: TenantFilterApplier
 ) {
 
     /**
      * RBAC → ABAC 순으로 평가하여 최종 허용 여부를 반환
      */
     @Transactional(readOnly = true)
-    fun evaluate(request: PolicyEvaluationRequest): PolicyDecision {
-        val rbacResult = evaluateRbac(request)
-        if (!rbacResult.allowed) {
-            return PolicyDecision(
-                allowed = false,
-                reason = rbacResult.reasonWhenDenied,
-                matchedRoleNames = rbacResult.matchedRoleNames
-            )
-        }
+    fun evaluate(request: PolicyEvaluationRequest): PolicyDecision =
+        TenantContextHolder.withTenant(request.tenantId) {
+            tenantFilterApplier.enableForCurrentTenant()
+            val rbacResult = evaluateRbac(request)
+            if (!rbacResult.allowed) {
+                return@withTenant PolicyDecision(
+                    allowed = false,
+                    reason = rbacResult.reasonWhenDenied,
+                    matchedRoleNames = rbacResult.matchedRoleNames
+                )
+            }
 
-        return evaluateAbac(request, rbacResult.matchedRoleNames)
-    }
+            return@withTenant evaluateAbac(request, rbacResult.matchedRoleNames)
+        }
 
     /**
      * 요청 스코프에 맞는 역할/권한을 검사하여 RBAC 통과 여부를 계산

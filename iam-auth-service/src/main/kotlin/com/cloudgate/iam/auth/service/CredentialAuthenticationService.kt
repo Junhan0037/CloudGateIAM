@@ -5,6 +5,8 @@ import com.cloudgate.iam.account.domain.UserAccountRepository
 import com.cloudgate.iam.auth.security.AuthenticatedUserPrincipal
 import com.cloudgate.iam.common.domain.TenantStatus
 import com.cloudgate.iam.common.domain.UserAccountStatus
+import com.cloudgate.iam.common.tenant.TenantContextHolder
+import com.cloudgate.iam.common.tenant.TenantFilterApplier
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.DisabledException
 import org.springframework.security.authentication.LockedException
@@ -19,41 +21,44 @@ import java.time.Instant
 @Service
 class CredentialAuthenticationService(
     private val userAccountRepository: UserAccountRepository,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    private val tenantFilterApplier: TenantFilterApplier
 ) {
 
     /**
      * 사용자 인증을 실행하고 성공 시 인증 주체 정보를 반환
      */
     @Transactional
-    fun authenticate(tenantId: Long, username: String, rawPassword: String): AuthenticatedUserPrincipal {
-        val account = userAccountRepository.findByTenantIdAndUsername(tenantId, username)
-            ?: throw BadCredentialsException("잘못된 자격 증명입니다. tenantId=$tenantId")
+    fun authenticate(tenantId: Long, username: String, rawPassword: String): AuthenticatedUserPrincipal =
+        TenantContextHolder.withTenant(tenantId) {
+            tenantFilterApplier.enableForCurrentTenant()
+            val account = userAccountRepository.findByTenantIdAndUsername(tenantId, username)
+                ?: throw BadCredentialsException("잘못된 자격 증명입니다. tenantId=$tenantId")
 
-        ensureTenantIsActive(account)
-        ensureAccountIsUsable(account)
+            ensureTenantIsActive(account)
+            ensureAccountIsUsable(account)
 
-        if (!passwordEncoder.matches(rawPassword, account.passwordHash)) {
-            throw BadCredentialsException("잘못된 자격 증명입니다. tenantId=$tenantId")
+            if (!passwordEncoder.matches(rawPassword, account.passwordHash)) {
+                throw BadCredentialsException("잘못된 자격 증명입니다. tenantId=$tenantId")
+            }
+
+            account.lastLoginAt = Instant.now()
+            val mfaEnabled = account.mfaEnabled
+
+            return@withTenant AuthenticatedUserPrincipal(
+                userId = account.id ?: throw IllegalStateException("사용자 ID가 누락되었습니다. tenantId=$tenantId"),
+                tenantId = tenantId,
+                tenantCode = account.tenant.code,
+                usernameValue = account.username,
+                email = account.email,
+                mfaEnabled = mfaEnabled,
+                mfaVerified = !mfaEnabled,
+                status = account.status,
+                roles = resolveRoles(account),
+                department = account.department,
+                roleLevel = account.roleLevel
+            )
         }
-
-        account.lastLoginAt = Instant.now()
-        val mfaEnabled = account.mfaEnabled
-
-        return AuthenticatedUserPrincipal(
-            userId = account.id ?: throw IllegalStateException("사용자 ID가 누락되었습니다. tenantId=$tenantId"),
-            tenantId = tenantId,
-            tenantCode = account.tenant.code,
-            usernameValue = account.username,
-            email = account.email,
-            mfaEnabled = mfaEnabled,
-            mfaVerified = !mfaEnabled,
-            status = account.status,
-            roles = resolveRoles(account),
-            department = account.department,
-            roleLevel = account.roleLevel
-        )
-    }
 
     /**
      * 간단한 역할 매핑을 수행해 기본 RBAC 컨텍스트를 구성

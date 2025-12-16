@@ -1,6 +1,8 @@
 package com.cloudgate.iam.policy.domain
 
 import com.cloudgate.iam.common.domain.BaseEntity
+import com.cloudgate.iam.common.tenant.TENANT_FILTER_NAME
+import com.cloudgate.iam.common.tenant.TENANT_FILTER_PARAM
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
 import jakarta.persistence.ElementCollection
@@ -17,12 +19,14 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.Lob
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
+import org.hibernate.annotations.Filter
 
 /**
  * 멀티테넌트 ABAC 정책을 표현하는 엔티티로, 리소스·액션·조건과 효과를 저장
  * 조건은 JSON DSL 원문을 그대로 저장하여 향후 파서와 평가 엔진에서 해석
  */
 @Entity
+@Filter(name = TENANT_FILTER_NAME, condition = "tenant_id = :$TENANT_FILTER_PARAM")
 @Table(
     name = "policies",
     uniqueConstraints = [

@@ -6,6 +6,8 @@ import com.cloudgate.iam.policy.audit.PolicyAuditEventPublisher
 import com.cloudgate.iam.policy.domain.Policy
 import com.cloudgate.iam.policy.domain.PolicyEffect
 import com.cloudgate.iam.policy.domain.PolicyRepository
+import com.cloudgate.iam.common.tenant.TenantContextHolder
+import com.cloudgate.iam.common.tenant.TenantFilterApplier
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -21,6 +23,7 @@ import java.util.UUID
 class PolicyChangeService(
     private val policyRepository: PolicyRepository,
     private val policyAuditEventPublisher: PolicyAuditEventPublisher,
+    private val tenantFilterApplier: TenantFilterApplier,
     private val clock: Clock,
     @Value("\${spring.application.name:iam-policy-service}")
     private val serviceName: String
@@ -32,102 +35,106 @@ class PolicyChangeService(
      * 신규 정책을 저장하고 감사 이벤트를 발행
      */
     @Transactional
-    fun createPolicy(command: CreatePolicyCommand): Policy {
-        if (policyRepository.existsByTenantIdAndName(command.tenantId, command.name)) {
-            throw IllegalArgumentException("동일한 이름의 정책이 이미 존재합니다. tenantId=${command.tenantId}, name=${command.name}")
+    fun createPolicy(command: CreatePolicyCommand): Policy =
+        TenantContextHolder.withTenant(command.tenantId) {
+            tenantFilterApplier.enableForCurrentTenant()
+            if (policyRepository.existsByTenantIdAndName(command.tenantId, command.name)) {
+                throw IllegalArgumentException("동일한 이름의 정책이 이미 존재합니다. tenantId=${command.tenantId}, name=${command.name}")
+            }
+
+            val normalizedActions = normalizeActions(command.actions)
+            val policy = Policy(
+                tenantId = command.tenantId,
+                name = command.name.trim(),
+                resource = command.resource.trim(),
+                actionSet = normalizedActions,
+                effect = command.effect,
+                conditionPayload = command.conditionJson.trim(),
+                priority = command.priority,
+                active = command.active,
+                description = command.description?.trim()
+            )
+
+            val saved = policyRepository.save(policy)
+            publishAuditEvent(saved, PolicyChangeType.CREATED, command.actorId, command.actorName, "created")
+            logger.info("정책 생성 완료 tenantId={} policyId={} name={}", saved.tenantId, saved.id, saved.name)
+
+            return@withTenant saved
         }
-
-        val normalizedActions = normalizeActions(command.actions)
-        val policy = Policy(
-            tenantId = command.tenantId,
-            name = command.name.trim(),
-            resource = command.resource.trim(),
-            actionSet = normalizedActions,
-            effect = command.effect,
-            conditionPayload = command.conditionJson.trim(),
-            priority = command.priority,
-            active = command.active,
-            description = command.description?.trim()
-        )
-
-        val saved = policyRepository.save(policy)
-        publishAuditEvent(saved, PolicyChangeType.CREATED, command.actorId, command.actorName, "created")
-        logger.info("정책 생성 완료 tenantId={} policyId={} name={}", saved.tenantId, saved.id, saved.name)
-
-        return saved
-    }
 
     /**
      * 정책 속성을 업데이트하고 변경 사항을 감사 로그로 남김
      */
     @Transactional
-    fun updatePolicy(command: UpdatePolicyCommand): Policy {
-        val policy = policyRepository.findById(command.policyId)
-            .orElseThrow { IllegalArgumentException("정책을 찾을 수 없습니다. policyId=${command.policyId}") }
+    fun updatePolicy(command: UpdatePolicyCommand): Policy =
+        TenantContextHolder.withTenant(command.tenantId) {
+            tenantFilterApplier.enableForCurrentTenant()
+            val policy = policyRepository.findById(command.policyId)
+                .orElseThrow { IllegalArgumentException("정책을 찾을 수 없습니다. policyId=${command.policyId}") }
 
-        if (policy.tenantId != command.tenantId) {
-            throw IllegalArgumentException("다른 테넌트의 정책은 수정할 수 없습니다. tenantId=${command.tenantId}")
-        }
-
-        val changedFields = mutableListOf<String>()
-
-        command.effect?.let {
-            if (policy.effect != it) {
-                policy.effect = it
-                changedFields += "effect"
+            if (policy.tenantId != command.tenantId) {
+                throw IllegalArgumentException("다른 테넌트의 정책은 수정할 수 없습니다. tenantId=${command.tenantId}")
             }
-        }
 
-        command.priority?.let {
-            require(it >= 0) { "정책 우선순위는 0 이상이어야 합니다." }
-            if (policy.priority != it) {
-                policy.priority = it
-                changedFields += "priority"
+            val changedFields = mutableListOf<String>()
+
+            command.effect?.let {
+                if (policy.effect != it) {
+                    policy.effect = it
+                    changedFields += "effect"
+                }
             }
-        }
 
-        command.active?.let {
-            if (policy.active != it) {
-                policy.active = it
-                changedFields += if (it) "activated" else "deactivated"
+            command.priority?.let {
+                require(it >= 0) { "정책 우선순위는 0 이상이어야 합니다." }
+                if (policy.priority != it) {
+                    policy.priority = it
+                    changedFields += "priority"
+                }
             }
-        }
 
-        command.description?.let {
-            val trimmed = it.trim()
-            if (policy.description != trimmed) {
-                policy.description = trimmed
-                changedFields += "description"
+            command.active?.let {
+                if (policy.active != it) {
+                    policy.active = it
+                    changedFields += if (it) "activated" else "deactivated"
+                }
             }
-        }
 
-        command.conditionJson?.let {
-            val normalized = it.trim()
-            if (normalized.isBlank()) {
-                throw IllegalArgumentException("정책 조건은 비어 있을 수 없습니다.")
+            command.description?.let {
+                val trimmed = it.trim()
+                if (policy.description != trimmed) {
+                    policy.description = trimmed
+                    changedFields += "description"
+                }
             }
-            if (policy.conditionJson != normalized) {
-                policy.conditionJson = normalized
-                changedFields += "condition"
+
+            command.conditionJson?.let {
+                val normalized = it.trim()
+                if (normalized.isBlank()) {
+                    throw IllegalArgumentException("정책 조건은 비어 있을 수 없습니다.")
+                }
+                if (policy.conditionJson != normalized) {
+                    policy.conditionJson = normalized
+                    changedFields += "condition"
+                }
             }
-        }
 
-        command.actions?.let {
-            val normalizedActions = normalizeActions(it)
-            if (normalizedActions != policy.actions.toSet()) {
-                policy.actions.clear()
-                policy.actions.addAll(normalizedActions)
-                changedFields += "actions"
+            command.actions?.let {
+                val normalizedActions = normalizeActions(it)
+                if (normalizedActions != policy.actions.toSet()) {
+                    policy.actions.clear()
+                    policy.actions.addAll(normalizedActions)
+                    changedFields += "actions"
+                }
             }
+
+            val saved = policyRepository.save(policy)
+            val summary = if (changedFields.isEmpty()) "no-op" else changedFields.joinToString(",")
+            publishAuditEvent(saved, PolicyChangeType.UPDATED, command.actorId, command.actorName, summary)
+            logger.info("정책 수정 완료 tenantId={} policyId={} changed={}", saved.tenantId, saved.id, summary)
+
+            return@withTenant saved
         }
-
-        val saved = policyRepository.save(policy)
-        val summary = if (changedFields.isEmpty()) "no-op" else changedFields.joinToString(",")
-        publishAuditEvent(saved, PolicyChangeType.UPDATED, command.actorId, command.actorName, summary)
-        logger.info("정책 수정 완료 tenantId={} policyId={} changed={}", saved.tenantId, saved.id, summary)
-
-        return saved
-    }
 
     private fun normalizeActions(actions: Set<String>): Set<String> =
         actions.map { it.trim() }

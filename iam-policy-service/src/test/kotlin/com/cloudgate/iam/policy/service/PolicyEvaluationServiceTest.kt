@@ -13,6 +13,7 @@ import com.cloudgate.iam.policy.domain.RoleRepository
 import com.cloudgate.iam.policy.domain.UserRoleAssignment
 import com.cloudgate.iam.policy.domain.UserRoleAssignmentRepository
 import com.cloudgate.iam.policy.dsl.PolicyDslParser
+import com.cloudgate.iam.common.tenant.TenantFilterConfiguration
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.assertj.core.api.Assertions.assertThat
@@ -29,6 +30,7 @@ import org.springframework.test.context.ActiveProfiles
 @Import(
     PolicyEvaluationService::class,
     PolicyDslParser::class,
+    TenantFilterConfiguration::class,
     PolicyEvaluationServiceTest.TestConfig::class
 )
 class PolicyEvaluationServiceTest @Autowired constructor(

@@ -6,6 +6,8 @@ import com.cloudgate.iam.auth.config.MfaProperties
 import com.cloudgate.iam.auth.security.AuthenticatedUserPrincipal
 import com.cloudgate.iam.auth.service.exception.MfaCodeInvalidException
 import com.cloudgate.iam.auth.service.exception.MfaRegistrationNotFoundException
+import com.cloudgate.iam.common.tenant.TenantContextHolder
+import com.cloudgate.iam.common.tenant.TenantFilterApplier
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -19,7 +21,8 @@ class TotpMfaService(
     private val userAccountRepository: UserAccountRepository,
     private val totpTokenService: TotpTokenService,
     private val mfaProperties: MfaProperties,
-    private val clock: Clock
+    private val clock: Clock,
+    private val tenantFilterApplier: TenantFilterApplier
 ) {
 
     /**
@@ -27,63 +30,69 @@ class TotpMfaService(
      * 기존 MFA가 활성화된 경우에도 새 시크릿을 pending 영역에 저장해 회전 시나리오를 지원
      */
     @Transactional
-    fun issueEnrollment(principal: AuthenticatedUserPrincipal): TotpEnrollmentResult {
-        val account = findAccount(principal)
-        val secret = totpTokenService.generateSecret()
+    fun issueEnrollment(principal: AuthenticatedUserPrincipal): TotpEnrollmentResult =
+        TenantContextHolder.withTenant(principal.tenantId) {
+            tenantFilterApplier.enableForCurrentTenant()
+            val account = findAccount(principal)
+            val secret = totpTokenService.generateSecret()
 
-        account.pendingMfaSecret = secret
-        userAccountRepository.save(account)
+            account.pendingMfaSecret = secret
+            userAccountRepository.save(account)
 
-        val label = buildAccountLabel(account)
-        return TotpEnrollmentResult(
-            secret = secret,
-            provisioningUri = totpTokenService.buildProvisioningUri(secret, label),
-            issuer = mfaProperties.issuer,
-            accountLabel = label,
-            mfaAlreadyEnabled = account.mfaEnabled
-        )
-    }
+            val label = buildAccountLabel(account)
+            return@withTenant TotpEnrollmentResult(
+                secret = secret,
+                provisioningUri = totpTokenService.buildProvisioningUri(secret, label),
+                issuer = mfaProperties.issuer,
+                accountLabel = label,
+                mfaAlreadyEnabled = account.mfaEnabled
+            )
+        }
 
     /**
      * 발급된 시크릿으로 생성된 OTP가 유효하면 MFA를 활성화
      */
     @Transactional
-    fun activate(principal: AuthenticatedUserPrincipal, code: String): MfaState {
-        val account = findAccount(principal)
-        val pendingSecret = account.pendingMfaSecret
-            ?: throw MfaRegistrationNotFoundException("활성화할 MFA 시크릿이 없습니다.")
+    fun activate(principal: AuthenticatedUserPrincipal, code: String): MfaState =
+        TenantContextHolder.withTenant(principal.tenantId) {
+            tenantFilterApplier.enableForCurrentTenant()
+            val account = findAccount(principal)
+            val pendingSecret = account.pendingMfaSecret
+                ?: throw MfaRegistrationNotFoundException("활성화할 MFA 시크릿이 없습니다.")
 
-        if (!totpTokenService.verifyCode(pendingSecret, code)) {
-            throw MfaCodeInvalidException("유효하지 않은 TOTP 코드입니다.")
+            if (!totpTokenService.verifyCode(pendingSecret, code)) {
+                throw MfaCodeInvalidException("유효하지 않은 TOTP 코드입니다.")
+            }
+
+            account.mfaSecret = pendingSecret
+            account.pendingMfaSecret = null
+            account.mfaEnabled = true
+            account.mfaEnrolledAt = Instant.now(clock)
+            userAccountRepository.save(account)
+
+            return@withTenant MfaState(mfaEnabled = true, mfaVerified = true)
         }
-
-        account.mfaSecret = pendingSecret
-        account.pendingMfaSecret = null
-        account.mfaEnabled = true
-        account.mfaEnrolledAt = Instant.now(clock)
-        userAccountRepository.save(account)
-
-        return MfaState(mfaEnabled = true, mfaVerified = true)
-    }
 
     /**
      * 활성화된 TOTP 시크릿 기준으로 로그인 시점의 MFA 코드를 검증
      */
     @Transactional(readOnly = true)
-    fun verifyChallenge(principal: AuthenticatedUserPrincipal, code: String): MfaState {
-        val account = findAccount(principal)
-        val activeSecret = account.mfaSecret ?: throw MfaRegistrationNotFoundException("MFA가 활성화되어 있지 않습니다.")
+    fun verifyChallenge(principal: AuthenticatedUserPrincipal, code: String): MfaState =
+        TenantContextHolder.withTenant(principal.tenantId) {
+            tenantFilterApplier.enableForCurrentTenant()
+            val account = findAccount(principal)
+            val activeSecret = account.mfaSecret ?: throw MfaRegistrationNotFoundException("MFA가 활성화되어 있지 않습니다.")
 
-        if (!account.mfaEnabled) {
-            throw MfaRegistrationNotFoundException("MFA가 활성화되어 있지 않습니다.")
+            if (!account.mfaEnabled) {
+                throw MfaRegistrationNotFoundException("MFA가 활성화되어 있지 않습니다.")
+            }
+
+            if (!totpTokenService.verifyCode(activeSecret, code)) {
+                throw MfaCodeInvalidException("유효하지 않은 TOTP 코드입니다.")
+            }
+
+            return@withTenant MfaState(mfaEnabled = true, mfaVerified = true)
         }
-
-        if (!totpTokenService.verifyCode(activeSecret, code)) {
-            throw MfaCodeInvalidException("유효하지 않은 TOTP 코드입니다.")
-        }
-
-        return MfaState(mfaEnabled = true, mfaVerified = true)
-    }
 
     private fun findAccount(principal: AuthenticatedUserPrincipal): UserAccount =
         userAccountRepository.findById(principal.userId)
