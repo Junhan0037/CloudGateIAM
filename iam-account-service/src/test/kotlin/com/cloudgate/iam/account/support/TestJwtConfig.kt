@@ -12,7 +12,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
-import java.util.UUID
+import java.util.*
 
 /**
  * 통합 테스트용 RSA 키를 구성해 JWT 인코더/디코더를 동일한 키로 동작

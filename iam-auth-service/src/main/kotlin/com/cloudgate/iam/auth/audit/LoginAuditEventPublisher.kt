@@ -10,7 +10,7 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
 import java.time.Clock
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * 로그인 감사 이벤트 발행 인터페이스

@@ -2,14 +2,10 @@ package com.cloudgate.iam.common.domain
 
 import com.cloudgate.iam.common.tenant.TENANT_FILTER_NAME
 import com.cloudgate.iam.common.tenant.TENANT_FILTER_PARAM
-import jakarta.persistence.Column
-import jakarta.persistence.MappedSuperclass
-import jakarta.persistence.PrePersist
-import jakarta.persistence.PreUpdate
-import jakarta.persistence.Version
-import java.time.Instant
+import jakarta.persistence.*
 import org.hibernate.annotations.FilterDef
 import org.hibernate.annotations.ParamDef
+import java.time.Instant
 
 /**
  * JPA 공통 엔티티 베이스로, 생성/수정 시각과 버전을 일관되게 관리

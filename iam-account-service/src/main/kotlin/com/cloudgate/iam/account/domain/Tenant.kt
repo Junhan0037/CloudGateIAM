@@ -3,16 +3,7 @@ package com.cloudgate.iam.account.domain
 import com.cloudgate.iam.common.domain.BaseEntity
 import com.cloudgate.iam.common.domain.RegionCode
 import com.cloudgate.iam.common.domain.TenantStatus
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.Index
-import jakarta.persistence.Table
-import jakarta.persistence.UniqueConstraint
+import jakarta.persistence.*
 
 /**
  * 멀티테넌트 환경에서 조직을 나타내는 엔티티로 외부 노출용 코드, 상태, 기본 리전 정보를 보유

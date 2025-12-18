@@ -30,10 +30,12 @@ class ConsoleController(
         @AuthenticationPrincipal oidcUser: OidcUser?,
         @RegisteredOAuth2AuthorizedClient("minicloud") authorizedClient: OAuth2AuthorizedClient?
     ): String {
+        // 기본값 세팅 (로그인 안 했을 때도 뷰가 깨지지 않게)
         model.addAttribute("profile", null)
         model.addAttribute("claims", emptyMap<String, Any>())
         model.addAttribute("token", null)
 
+        // 로그인 상태면 정보 채움
         if (authentication != null && oidcUser != null) {
             val client = authorizedClient ?: loadAuthorizedClient(authentication)
 
@@ -91,7 +93,7 @@ class ConsoleController(
     private fun buildTokenView(authorizedClient: OAuth2AuthorizedClient?): TokenView? {
         val client = authorizedClient ?: return null
         val tokenValue = client.accessToken.tokenValue
-        val preview = if (tokenValue.length > 20) tokenValue.take(20) + "..." else tokenValue
+        val preview = if (tokenValue.length > 20) tokenValue.take(20) + "..." else tokenValue // 앞 20자만 preview 로 보여주고 나머지는 숨김
 
         return TokenView(
             accessTokenExpiresAt = client.accessToken.expiresAt,
@@ -103,6 +105,7 @@ class ConsoleController(
 
     /**
      * 세션에 저장된 Authorized Client가 누락된 경우 서비스 기반으로 복구
+     * - principalName(보통 username/sub)으로 저장소에서 다시 조회
      */
     private fun loadAuthorizedClient(authentication: Authentication?): OAuth2AuthorizedClient? {
         val principalName = authentication?.name ?: return null

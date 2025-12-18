@@ -19,10 +19,7 @@ class ResourceUserMapper {
             subject = jwt.subject,
             userId = (jwt.claims["userId"] as? Number)?.toLong(),
             tenantId = (jwt.claims["tenantId"] as? Number)?.toLong(),
-            tenantRegion = (jwt.claims["tenantRegion"] as? String)
-                ?.trim()
-                ?.takeIf { it.isNotEmpty() }
-                ?.let { RegionCode.normalize(it) },
+            tenantRegion = extractTenantRegion(jwt),
             tenantCode = jwt.claims["tenantCode"] as? String,
             roles = extractRoles(jwt),
             attributes = extractAttributes(jwt),
@@ -30,6 +27,12 @@ class ResourceUserMapper {
             issuedAt = jwt.issuedAt,
             expiresAt = jwt.expiresAt
         )
+
+    private fun extractTenantRegion(jwt: Jwt): String? =
+        (jwt.claims["tenantRegion"] as? String)
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { RegionCode.normalize(it) }
 
     private fun extractRoles(jwt: Jwt): List<String> =
         (jwt.claims["roles"] as? Collection<*>)

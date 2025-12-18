@@ -19,10 +19,7 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.view
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.model
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 
 @SpringBootTest(
     classes = [ConsoleApplication::class, OAuth2TestConfig::class],

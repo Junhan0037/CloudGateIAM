@@ -61,25 +61,6 @@ class CredentialAuthenticationService(
             )
         }
 
-    /**
-     * 간단한 역할 매핑을 수행해 기본 RBAC 컨텍스트를 구성
-     * 향후 Policy 서비스 연동 시 실제 역할/프로젝트 범위를 반영하도록 확장
-     */
-    private fun resolveRoles(account: UserAccount): List<String> {
-        val normalizedLevel = account.roleLevel?.trim()?.uppercase()
-
-        if (normalizedLevel.isNullOrBlank()) {
-            return listOf("TENANT_USER")
-        }
-
-        return when {
-            normalizedLevel.contains("SYSTEM") -> listOf("SYSTEM_ADMIN")
-            normalizedLevel.contains("ADMIN") -> listOf("TENANT_ADMIN")
-            normalizedLevel.contains("VIEWER") -> listOf("PROJECT_VIEWER")
-            else -> listOf("TENANT_USER")
-        }
-    }
-
     private fun ensureTenantIsActive(account: UserAccount) {
         if (account.tenant.status != TenantStatus.ACTIVE) {
             throw DisabledException("테넌트가 활성 상태가 아닙니다. tenantId=${account.tenant.id}")
@@ -97,6 +78,25 @@ class CredentialAuthenticationService(
                 throw DisabledException("계정이 정지 상태입니다. tenantId=${account.tenant.id}")
             UserAccountStatus.DELETED ->
                 throw DisabledException("탈퇴 처리된 계정입니다. tenantId=${account.tenant.id}")
+        }
+    }
+
+    /**
+     * 간단한 역할 매핑을 수행해 기본 RBAC 컨텍스트를 구성
+     * 향후 Policy 서비스 연동 시 실제 역할/프로젝트 범위를 반영하도록 확장
+     */
+    private fun resolveRoles(account: UserAccount): List<String> {
+        val normalizedLevel = account.roleLevel?.trim()?.uppercase()
+
+        if (normalizedLevel.isNullOrBlank()) {
+            return listOf("TENANT_USER")
+        }
+
+        return when {
+            normalizedLevel.contains("SYSTEM") -> listOf("SYSTEM_ADMIN")
+            normalizedLevel.contains("ADMIN") -> listOf("TENANT_ADMIN")
+            normalizedLevel.contains("VIEWER") -> listOf("PROJECT_VIEWER")
+            else -> listOf("TENANT_USER")
         }
     }
 }

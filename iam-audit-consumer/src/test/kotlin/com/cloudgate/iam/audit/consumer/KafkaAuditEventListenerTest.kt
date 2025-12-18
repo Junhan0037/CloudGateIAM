@@ -14,9 +14,9 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
 import java.time.Duration
-import java.util.UUID
+import java.time.Instant
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")

@@ -26,7 +26,7 @@ class TenantFilterConfiguration {
 }
 
 @Aspect
-@Order(Ordered.HIGHEST_PRECEDENCE + 50)
+@Order(Ordered.HIGHEST_PRECEDENCE + 50) // 가능하면 트랜잭션 처리 흐름 초기에 필터를 키기 위한 설정
 class TenantFilterAspect(
     private val entityManager: EntityManager
 ) {

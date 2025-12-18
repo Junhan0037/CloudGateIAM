@@ -2,19 +2,19 @@ package com.cloudgate.iam.policy.service
 
 import com.cloudgate.iam.common.event.PolicyChangeAuditEvent
 import com.cloudgate.iam.common.event.PolicyChangeType
+import com.cloudgate.iam.common.tenant.TenantContextHolder
+import com.cloudgate.iam.common.tenant.TenantFilterApplier
 import com.cloudgate.iam.policy.audit.PolicyAuditEventPublisher
 import com.cloudgate.iam.policy.domain.Policy
 import com.cloudgate.iam.policy.domain.PolicyEffect
 import com.cloudgate.iam.policy.domain.PolicyRepository
-import com.cloudgate.iam.common.tenant.TenantContextHolder
-import com.cloudgate.iam.common.tenant.TenantFilterApplier
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * 정책 생성/수정 작업을 처리하고 감사 이벤트를 Kafka로 발행하는 서비스
@@ -55,11 +55,11 @@ class PolicyChangeService(
                 description = command.description?.trim()
             )
 
-            val saved = policyRepository.save(policy)
-            publishAuditEvent(saved, PolicyChangeType.CREATED, command.actorId, command.actorName, "created")
-            logger.info("정책 생성 완료 tenantId={} policyId={} name={}", saved.tenantId, saved.id, saved.name)
+            val savedPolicy = policyRepository.save(policy)
+            publishAuditEvent(savedPolicy, PolicyChangeType.CREATED, command.actorId, command.actorName, "created")
+            logger.info("정책 생성 완료 tenantId={} policyId={} name={}", savedPolicy.tenantId, savedPolicy.id, savedPolicy.name)
 
-            return@withTenant saved
+            return@withTenant savedPolicy
         }
 
     /**
@@ -128,12 +128,12 @@ class PolicyChangeService(
                 }
             }
 
-            val saved = policyRepository.save(policy)
+            val savedPolicy = policyRepository.save(policy)
             val summary = if (changedFields.isEmpty()) "no-op" else changedFields.joinToString(",")
-            publishAuditEvent(saved, PolicyChangeType.UPDATED, command.actorId, command.actorName, summary)
-            logger.info("정책 수정 완료 tenantId={} policyId={} changed={}", saved.tenantId, saved.id, summary)
+            publishAuditEvent(savedPolicy, PolicyChangeType.UPDATED, command.actorId, command.actorName, summary)
+            logger.info("정책 수정 완료 tenantId={} policyId={} changed={}", savedPolicy.tenantId, savedPolicy.id, summary)
 
-            return@withTenant saved
+            return@withTenant savedPolicy
         }
 
     private fun normalizeActions(actions: Set<String>): Set<String> =

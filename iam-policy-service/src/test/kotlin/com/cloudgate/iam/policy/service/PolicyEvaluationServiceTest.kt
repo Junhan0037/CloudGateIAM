@@ -1,19 +1,9 @@
 package com.cloudgate.iam.policy.service
 
 import com.cloudgate.iam.common.domain.RoleScope
-import com.cloudgate.iam.policy.domain.Permission
-import com.cloudgate.iam.policy.domain.PermissionRepository
-import com.cloudgate.iam.policy.domain.Policy
-import com.cloudgate.iam.policy.domain.PolicyEffect
-import com.cloudgate.iam.policy.domain.PolicyRepository
-import com.cloudgate.iam.policy.domain.Role
-import com.cloudgate.iam.policy.domain.RolePermission
-import com.cloudgate.iam.policy.domain.RolePermissionRepository
-import com.cloudgate.iam.policy.domain.RoleRepository
-import com.cloudgate.iam.policy.domain.UserRoleAssignment
-import com.cloudgate.iam.policy.domain.UserRoleAssignmentRepository
-import com.cloudgate.iam.policy.dsl.PolicyDslParser
 import com.cloudgate.iam.common.tenant.TenantFilterConfiguration
+import com.cloudgate.iam.policy.domain.*
+import com.cloudgate.iam.policy.dsl.PolicyDslParser
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.assertj.core.api.Assertions.assertThat

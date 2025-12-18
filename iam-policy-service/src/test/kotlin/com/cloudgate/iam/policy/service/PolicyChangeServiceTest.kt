@@ -2,19 +2,19 @@ package com.cloudgate.iam.policy.service
 
 import com.cloudgate.iam.common.event.PolicyChangeAuditEvent
 import com.cloudgate.iam.common.event.PolicyChangeType
+import com.cloudgate.iam.common.tenant.TenantFilterConfiguration
 import com.cloudgate.iam.policy.audit.PolicyAuditEventPublisher
 import com.cloudgate.iam.policy.config.ClockConfig
 import com.cloudgate.iam.policy.domain.Policy
 import com.cloudgate.iam.policy.domain.PolicyEffect
 import com.cloudgate.iam.policy.domain.PolicyRepository
-import com.cloudgate.iam.common.tenant.TenantFilterConfiguration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.boot.test.context.TestConfiguration
-import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 
 @DataJpaTest

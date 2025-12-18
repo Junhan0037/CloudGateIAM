@@ -1,8 +1,8 @@
 package com.cloudgate.iam.auth.web
 
-import com.cloudgate.iam.auth.web.dto.ErrorResponse
 import com.cloudgate.iam.auth.service.exception.MfaCodeInvalidException
 import com.cloudgate.iam.auth.service.exception.MfaRegistrationNotFoundException
+import com.cloudgate.iam.auth.web.dto.ErrorResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.ConstraintViolationException
 import org.springframework.http.HttpStatus

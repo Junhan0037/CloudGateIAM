@@ -1,14 +1,7 @@
 package com.cloudgate.iam.policy.domain
 
 import com.cloudgate.iam.common.domain.BaseEntity
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.Index
-import jakarta.persistence.Table
-import jakarta.persistence.UniqueConstraint
+import jakarta.persistence.*
 
 /**
  * 리소스-액션 단위의 최소 권한 단위를 표현하며, 역할에 매핑해 RBAC을 구성

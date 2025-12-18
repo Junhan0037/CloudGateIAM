@@ -81,7 +81,8 @@ class TotpMfaService(
         TenantContextHolder.withTenant(principal.tenantId) {
             tenantFilterApplier.enableForCurrentTenant()
             val account = findAccount(principal)
-            val activeSecret = account.mfaSecret ?: throw MfaRegistrationNotFoundException("MFA가 활성화되어 있지 않습니다.")
+            val activeSecret = account.mfaSecret
+                ?: throw MfaRegistrationNotFoundException("MFA가 활성화되어 있지 않습니다.")
 
             if (!account.mfaEnabled) {
                 throw MfaRegistrationNotFoundException("MFA가 활성화되어 있지 않습니다.")

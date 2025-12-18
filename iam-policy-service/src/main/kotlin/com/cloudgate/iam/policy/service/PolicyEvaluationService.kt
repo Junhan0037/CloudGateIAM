@@ -1,22 +1,10 @@
 package com.cloudgate.iam.policy.service
 
 import com.cloudgate.iam.common.domain.RoleScope
-import com.cloudgate.iam.policy.domain.Policy
-import com.cloudgate.iam.policy.domain.PolicyEffect
-import com.cloudgate.iam.policy.domain.PolicyRepository
-import com.cloudgate.iam.policy.domain.RolePermissionRepository
-import com.cloudgate.iam.policy.domain.UserRoleAssignment
-import com.cloudgate.iam.policy.domain.UserRoleAssignmentRepository
-import com.cloudgate.iam.policy.dsl.AllConditions
-import com.cloudgate.iam.policy.dsl.AnyConditions
-import com.cloudgate.iam.policy.dsl.AttributeOperator
-import com.cloudgate.iam.policy.dsl.ConditionNode
-import com.cloudgate.iam.policy.dsl.MatchCondition
-import com.cloudgate.iam.policy.dsl.NotCondition
-import com.cloudgate.iam.policy.dsl.PolicyDslParser
-import com.cloudgate.iam.policy.dsl.PolicyDocument
 import com.cloudgate.iam.common.tenant.TenantContextHolder
 import com.cloudgate.iam.common.tenant.TenantFilterApplier
+import com.cloudgate.iam.policy.domain.*
+import com.cloudgate.iam.policy.dsl.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal

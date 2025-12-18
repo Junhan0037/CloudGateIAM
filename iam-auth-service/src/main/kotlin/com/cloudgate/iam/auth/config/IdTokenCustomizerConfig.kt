@@ -16,6 +16,7 @@ class IdTokenCustomizerConfig {
 
     /**
      * 인증된 사용자 정보를 기반으로 ID Token 커스텀 클레임을 추가
+     * - OAuth2TokenCustomizer<JwtEncodingContext>: 토큰을 발급할 때(JWT로 인코딩할 때) 호출되는 “훅(hook)” 인터페이스
      */
     @Bean
     fun idTokenCustomizer(): OAuth2TokenCustomizer<JwtEncodingContext> =
@@ -25,7 +26,7 @@ class IdTokenCustomizerConfig {
                 ?: return@OAuth2TokenCustomizer
 
             when (context.tokenType) {
-                ID_TOKEN_TYPE, OAuth2TokenType.ACCESS_TOKEN -> applyUserClaims(context, principal)
+                ID_TOKEN_TYPE, OAuth2TokenType.ACCESS_TOKEN -> applyUserClaims(context, principal) // ID Token과 Access Token 둘 다에 동일한 사용자 컨텍스트를 넣는다.
                 else -> return@OAuth2TokenCustomizer
             }
         }
@@ -33,24 +34,22 @@ class IdTokenCustomizerConfig {
     /**
      * Access Token과 ID Token에 공통 사용자 컨텍스트를 주입해 리소스 서버가 일관된 RBAC/ABAC 정보를 활용
      */
-    private fun applyUserClaims(
-        context: JwtEncodingContext,
-        principal: AuthenticatedUserPrincipal
-    ) {
+    private fun applyUserClaims(context: JwtEncodingContext, principal: AuthenticatedUserPrincipal) {
+        // 커스텀 클레임 추가
         val claims = context.claims
-        claims.claim("tenantId", principal.tenantId)
+        claims.claim("tenantId", principal.tenantId) // 멀티테넌시 컨텍스트. 리소스 서버가 tenant scope 체크(테넌트 격리)를 토큰만으로 수행 가능.
         claims.claim("tenantCode", principal.tenantCode)
         claims.claim("tenantRegion", principal.tenantRegion)
-        claims.claim("userId", principal.userId)
-        claims.claim("preferred_username", principal.username)
+        claims.claim("userId", principal.userId) // // 내부 사용자 식별자.
+        claims.claim("preferred_username", principal.username) // OIDC에서 자주 쓰는 표준 클레임 이름 중 하나. UI 표시나 감사로그 등에 유용.
 
         if (principal.roles.isNotEmpty()) {
-            claims.claim("roles", principal.roles)
+            claims.claim("roles", principal.roles) // RBAC(Role Based Access Control) 핵심 정보.
         }
 
         val attributes = buildAttributeClaims(principal)
         if (attributes.isNotEmpty()) {
-            claims.claim("attributes", attributes)
+            claims.claim("attributes", attributes) // ABAC(Attribute Based Access Control)용.
         }
     }
 
@@ -66,7 +65,6 @@ class IdTokenCustomizerConfig {
         }
 
     companion object {
-        // Authorization Server에서는 ID Token 타입 상수가 제공되지 않아 명시적으로 정의
-        private val ID_TOKEN_TYPE = OAuth2TokenType("id_token")
+        private val ID_TOKEN_TYPE = OAuth2TokenType("id_token") // Authorization Server에서는 ID Token 타입 상수가 제공되지 않아 명시적으로 정의
     }
 }

@@ -1,11 +1,11 @@
 package com.cloudgate.iam.auth.config
 
+import com.cloudgate.iam.auth.security.MfaVerificationFilter
 import com.cloudgate.iam.auth.security.TenantUsernamePasswordAuthenticationProvider
 import com.cloudgate.iam.auth.web.dto.LogoutResponse
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import com.cloudgate.iam.auth.security.MfaVerificationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
@@ -21,8 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
-import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.security.web.context.SecurityContextHolderFilter
+import org.springframework.security.web.context.SecurityContextRepository
 
 /**
  * Spring Security 설정으로 세션 기반 인증과 로그인 엔드포인트를 보호
@@ -48,6 +48,10 @@ class SecurityConfig {
     ): AuthenticationManager =
         ProviderManager(listOf(tenantAuthenticationProvider))
 
+    /**
+     * 인증 결과(SecurityContext)를 “저장/조회”하는 전략.
+     * - 기본적으로 HTTP 세션에 SecurityContext를 저장
+     */
     @Bean
     fun securityContextRepository(): SecurityContextRepository = HttpSessionSecurityContextRepository()
 
@@ -61,24 +65,29 @@ class SecurityConfig {
     ): SecurityFilterChain {
         http
             .csrf { it.disable() }
+            // Spring Security 기본 로그인 폼 페이지를 쓰지 않겠다
             .formLogin { it.disable() }
+            // Basic Auth도 사용하지 않겠다
             .httpBasic { it.disable() }
+            // 커스텀 Provider를 이 체인에서 인증에 사용하도록 등록
             .authenticationProvider(tenantAuthenticationProvider)
             .sessionManagement {
-                it.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                    .maximumSessions(1)
-                    .maxSessionsPreventsLogin(false)
+                it.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 필요할 때만 세션 생성
+                    .maximumSessions(1) // 사용자당 동시 세션 1개로 제한
+                    .maxSessionsPreventsLogin(false) // 새 로그인 시도를 막지 않고, 기존 세션을 만료시키고 새 세션을 허용
             }
             .authorizeHttpRequests {
                 it.requestMatchers("/actuator/health", "/auth/login", "/auth/logout").permitAll()
                     .anyRequest().authenticated()
             }
+            // SecurityContext 저장소를 “세션”으로 지정
             .securityContext { it.securityContextRepository(securityContextRepository) }
+            // 미인증 시 401로 응답
             .exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
             .logout {
                 it.logoutUrl("/auth/logout")
                     .deleteCookies("CGIAMSESSION")
-                    .invalidateHttpSession(true)
+                    .invalidateHttpSession(true) // 서버 세션 자체를 무효화
                     .logoutSuccessHandler(logoutSuccessHandler)
             }
             .addFilterAfter(mfaVerificationFilter, SecurityContextHolderFilter::class.java)

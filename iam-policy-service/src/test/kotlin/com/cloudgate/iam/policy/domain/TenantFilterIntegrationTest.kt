@@ -1,8 +1,8 @@
 package com.cloudgate.iam.policy.domain
 
 import com.cloudgate.iam.common.tenant.TenantContextHolder
-import com.cloudgate.iam.common.tenant.TenantFilterConfiguration
 import com.cloudgate.iam.common.tenant.TenantFilterApplier
+import com.cloudgate.iam.common.tenant.TenantFilterConfiguration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
